@@ -2,18 +2,29 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"log"
 
-	"github.com/roto17/zeus/env" // Replace with your actual module path
+	"github.com/roto17/zeus/lib/database" // Replace with your actual module path
 )
 
 func main() {
 
-	dbUser := env.GetEnv("dbport")
-	dbPassword := env.GetEnv("dbname")
-	dbsslmode := env.GetEnv("dbsslmode")
+	conn, err := database.DBConnection()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close(context.Background())
 
-	fmt.Println("dbport:", dbUser)
-	fmt.Println("dbname:", dbPassword)
-	fmt.Println("dbsslmode:", dbsslmode)
+	var greeting string
+	err = conn.QueryRow(context.Background(), "SELECT 'Hello, world!'").Scan(&greeting)
+	if err != nil {
+		log.Fatal("QueryRow failed:", err)
+	}
+
+	fmt.Println(greeting)
+
+	// conn.Close(context.Background())
+
 }
