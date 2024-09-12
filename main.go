@@ -2,7 +2,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 
@@ -11,20 +10,33 @@ import (
 
 func main() {
 
-	conn, err := database.DBConnection()
+	// Get the GORM DB connection
+	db, err := database.DBConnection()
 	if err != nil {
-		log.Fatal(err)
-	}
-	defer conn.Close(context.Background())
-
-	var greeting string
-	err = conn.QueryRow(context.Background(), "SELECT 'Hello, world!'").Scan(&greeting)
-	if err != nil {
-		log.Fatal("QueryRow failed:", err)
+		log.Fatal("Error connecting to the database:", err)
 	}
 
-	fmt.Println(greeting)
+	// Create a new user
+	user := database.User{
+		Username: "john_doe",
+		Email:    "john@example.com",
+		Password: "securepassword",
+	}
 
-	// conn.Close(context.Background())
+	// Save the user to the database
+	result := db.Create(&user)
+	if result.Error != nil {
+		log.Fatal("Error creating user:", result.Error)
+	} else {
+		fmt.Println("User created with ID:", user.ID)
+	}
+
+	// Query the user
+	var fetchedUser database.User
+	if err := db.First(&fetchedUser, "username = ?", "john_doe").Error; err != nil {
+		log.Fatal("Error fetching user:", err)
+	} else {
+		fmt.Printf("Fetched User: %+v\n", fetchedUser)
+	}
 
 }
