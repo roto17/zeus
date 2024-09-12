@@ -1,5 +1,5 @@
 // File: lib/conf.go
-package lib
+package env
 
 import (
 	"log"
@@ -18,5 +18,6 @@ func LoadConfig() {
 
 // GetEnv retrieves the value of an environment variable
 func GetEnv(key string) string {
+	LoadConfig()
 	return os.Getenv(key)
 }

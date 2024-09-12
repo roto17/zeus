@@ -4,14 +4,16 @@ package main
 import (
 	"fmt"
 
-	"github.com/roto17/zeus/lib" // Replace with your actual module path
+	"github.com/roto17/zeus/env" // Replace with your actual module path
 )
 
 func main() {
-	lib.LoadConfig()
-	dbUser := lib.GetEnv("dbport")
-	dbPassword := lib.GetEnv("dbname")
+
+	dbUser := env.GetEnv("dbport")
+	dbPassword := env.GetEnv("dbname")
+	dbsslmode := env.GetEnv("dbsslmode")
 
 	fmt.Println("dbport:", dbUser)
 	fmt.Println("dbname:", dbPassword)
+	fmt.Println("dbsslmode:", dbsslmode)
 }
