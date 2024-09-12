@@ -1,17 +1,17 @@
+// File: main.go
 package main
 
 import (
 	"fmt"
-	"log"
-	"os"
 
-	"github.com/joho/godotenv"
+	"github.com/roto17/zeus/lib" // Replace with your actual module path
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-	fmt.Println(os.Getenv("dbport"))
+	lib.LoadConfig()
+	dbUser := lib.GetEnv("dbport")
+	dbPassword := lib.GetEnv("dbname")
+
+	fmt.Println("dbport:", dbUser)
+	fmt.Println("dbname:", dbPassword)
 }
