@@ -2,8 +2,9 @@
 package main
 
 import (
-	"fmt"
+	"log"
 
+	"github.com/roto17/zeus/lib/actions"
 	"github.com/roto17/zeus/lib/database" // Replace with your actual module path
 	"github.com/roto17/zeus/lib/migrations"
 	"github.com/roto17/zeus/lib/models"
@@ -16,14 +17,10 @@ func main() {
 
 	migrations.MigrateUser()
 
+	// Create a new user
 	user := models.User{Name: "John Doe", Desc: "okok", Jam: "uuu"}
-
-	// Validate the user
-	err := models.ValidateUserFields(database.DB, &user)
-	if err != nil {
-		fmt.Println("Validation failed:", err)
-	} else {
-		fmt.Println("Validation succeeded")
+	if err := actions.CreateUser(database.DB, &user); err != nil {
+		log.Fatal("Failed to create user:", err)
 	}
 
 }
