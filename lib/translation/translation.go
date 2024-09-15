@@ -24,7 +24,7 @@ type ValidationError struct {
 }
 
 // getTranslation fetches the translated message based on the tag and language
-func getTranslation(tag string, field string, lang string) string {
+func GetTranslation(tag string, field string, lang string) string {
 	if translationMap[lang] == nil {
 		// Fallback to English if the language is not supported
 		lang = "en"
@@ -49,7 +49,7 @@ func ValidateAndTranslate(model interface{}, lang string) []ValidationError {
 	if err != nil {
 		for _, fieldErr := range err.(validator.ValidationErrors) {
 			// Get the translated error message
-			message := getTranslation(fieldErr.Tag(), fieldErr.StructField(), lang)
+			message := GetTranslation(fieldErr.Tag(), fieldErr.StructField(), lang)
 
 			// Append the custom error message to the errors slice
 			errors = append(errors, ValidationError{
