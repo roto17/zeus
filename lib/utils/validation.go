@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -10,65 +9,38 @@ import (
 
 	"github.com/go-playground/validator/v10"
 
+	"github.com/roto17/zeus/lib/models"
 	"github.com/roto17/zeus/lib/translation"
 )
-
-type ValidationError struct {
-	Field   string
-	Message string
-}
 
 // Create a validator instance
 var validate = validator.New()
 
 // ValidateUser function to validate a User instance
-func ValidateStruct(model interface{}) ([]ValidationError, error) {
+func ValidateStruct(model interface{}, language string) []models.ValidationError {
 	err := validate.Struct(model)
-	var errors []ValidationError
+	var errors []models.ValidationError
 
 	if err != nil {
 		for _, fieldErr := range err.(validator.ValidationErrors) {
 			// Get the translated error message
 
-			message := translation.GetTranslation(fieldErr.Tag(), fieldErr.StructField(), "en")
+			message := translation.GetTranslation(fieldErr.Tag(), fieldErr.StructField(), language)
 
 			// Append the custom error message to the errors slice
-			errors = append(errors, ValidationError{
+			errors = append(errors, models.ValidationError{
 				Field:   fieldErr.StructField(),
 				Message: message,
 			})
 		}
 	}
 
-	if len(errors) > 0 {
-		return errors, nil
-	}
-	return nil, nil
-	// return validate.Struct(model)
+	return errors
 }
 
-// UniqueFieldValidator checks if a specific field is unique across the table.
-// It works for any model by accepting the model, field name, and field value.
-func UniqueFieldValidator(db *gorm.DB, model interface{}, fieldName string, fieldValue string) error {
-	var count int64
-	// Dynamically build the query based on the provided field name and value
-	query := fmt.Sprintf("%s = ?", fieldName)
-	if err := db.Model(model).Where(query, fieldValue).Count(&count).Error; err != nil {
-		return err
-	}
-	if count > 0 {
-		return errors.New(fmt.Sprintf("%s already exists", fieldName))
-	}
-	return nil
-}
+func UniqueFieldValidator(db *gorm.DB, model interface{}, language string) ([]models.ValidationError, error) {
 
-func UniqueFieldValidator_test(db *gorm.DB, model interface{}) ([]ValidationError, error) {
-	var uniqueFields []ValidationError
-	uniqueFields, err := ValidateStruct(model)
-
-	if err != nil {
-		fmt.Printf(err.Error())
-	}
+	uniqueFields := ValidateStruct(model, language)
 
 	val := reflect.ValueOf(model)
 	if val.Kind() == reflect.Ptr {
@@ -93,9 +65,9 @@ func UniqueFieldValidator_test(db *gorm.DB, model interface{}) ([]ValidationErro
 
 			if count > 0 {
 				// Field value is not unique
-				uniqueFields = append(uniqueFields, ValidationError{
+				uniqueFields = append(uniqueFields, models.ValidationError{
 					Field:   field.Name,
-					Message: translation.GetTranslation("unique", field.Name, "es"),
+					Message: translation.GetTranslation("unique", field.Name, language),
 				})
 
 			}

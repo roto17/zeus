@@ -1,0 +1,12 @@
+{
+    "en": {
+      "required": "{Field} is required",
+      "email": "{Field} must be a valid email",
+      "unique": "{Field} must be unique"
+    },
+    "fr": {
+      "required": "{Field} est requis",
+      "email": "{Field} doit être un email valide",
+      "unique": "{Field} doit être unique"
+    }
+  }

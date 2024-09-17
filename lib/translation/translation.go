@@ -1,32 +1,41 @@
 package translation
 
 import (
+	"encoding/json"
+	"io"
+
+	// "fmt"
+
+	"log"
+	"os"
 	"strings"
-
-	"github.com/go-playground/validator/v10"
 )
-
-// Translation maps for different languages
-var translationMap = map[string]map[string]string{
-	"en": {
-		"required": "{Field} is required",
-		"email":    "{Field} must be a valid email",
-		"unique":   "{Field} must be unique",
-	},
-	"es": {
-		"required": "{Field} es obligatorio",
-		"email":    "{Field} debe ser un correo electrónico válido",
-		"unique":   "{Field} mustos be uniquos",
-	},
-}
-
-type ValidationError struct {
-	Field   string
-	Message string
-}
 
 // getTranslation fetches the translated message based on the tag and language
 func GetTranslation(tag string, field string, lang string) string {
+
+	file, err := os.Open("./lib/translation/i18n.json")
+	if err != nil {
+		log.Fatalf("Failed to open the file: %v", err)
+	}
+	defer file.Close()
+
+	// Read the file contents
+	data, err := io.ReadAll(file)
+	if err != nil {
+		log.Fatalf("Failed to read file: %v", err)
+	}
+
+	// Create a variable to hold the translation map
+	var translationMap map[string]map[string]string
+
+	// Unmarshal JSON data into the translation map
+	err = json.Unmarshal(data, &translationMap)
+	if err != nil {
+		log.Fatalf("Failed to unmarshal JSON: %v", err)
+	}
+
+	// ******
 	if translationMap[lang] == nil {
 		// Fallback to English if the language is not supported
 		lang = "en"
@@ -40,25 +49,4 @@ func GetTranslation(tag string, field string, lang string) string {
 
 	// Replace {Field} with the actual field name
 	return strings.Replace(translation, "{Field}", field, 1)
-}
-
-// validateAndTranslate runs validation and translates error messages
-func ValidateAndTranslate(model interface{}, lang string) []ValidationError {
-	validate := validator.New()
-	err := validate.Struct(model)
-	var errors []ValidationError
-
-	if err != nil {
-		for _, fieldErr := range err.(validator.ValidationErrors) {
-			// Get the translated error message
-			message := GetTranslation(fieldErr.Tag(), fieldErr.StructField(), lang)
-
-			// Append the custom error message to the errors slice
-			errors = append(errors, ValidationError{
-				Field:   fieldErr.StructField(),
-				Message: message,
-			})
-		}
-	}
-	return errors
 }

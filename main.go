@@ -22,10 +22,10 @@ func main() {
 
 	// migrations.MigrateUser()
 
-	user := models.User{Name: "John Doe", Desc: "tree"}
+	user := models.User{Name: "John Doe", Desc: "Desc", Jam: "OKOK"}
 
 	// Validate and get translated error messages
-	list, errors := utils.UniqueFieldValidator_test(database.DB, user)
+	list, errors := utils.UniqueFieldValidator(database.DB, user, "en")
 
 	if list != nil {
 		for _, err := range list {
