@@ -3,6 +3,8 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"reflect"
+	"strings"
 
 	"gorm.io/gorm"
 
@@ -20,7 +22,7 @@ type ValidationError struct {
 var validate = validator.New()
 
 // ValidateUser function to validate a User instance
-func ValidateStruct(model interface{}) []ValidationError {
+func ValidateStruct(model interface{}) ([]ValidationError, error) {
 	err := validate.Struct(model)
 	var errors []ValidationError
 
@@ -28,7 +30,7 @@ func ValidateStruct(model interface{}) []ValidationError {
 		for _, fieldErr := range err.(validator.ValidationErrors) {
 			// Get the translated error message
 
-			message := translation.GetTranslation(fieldErr.Tag(), fieldErr.StructField(), "es")
+			message := translation.GetTranslation(fieldErr.Tag(), fieldErr.StructField(), "en")
 
 			// Append the custom error message to the errors slice
 			errors = append(errors, ValidationError{
@@ -37,7 +39,11 @@ func ValidateStruct(model interface{}) []ValidationError {
 			})
 		}
 	}
-	return errors
+
+	if len(errors) > 0 {
+		return errors, nil
+	}
+	return nil, nil
 	// return validate.Struct(model)
 }
 
@@ -54,4 +60,52 @@ func UniqueFieldValidator(db *gorm.DB, model interface{}, fieldName string, fiel
 		return errors.New(fmt.Sprintf("%s already exists", fieldName))
 	}
 	return nil
+}
+
+func UniqueFieldValidator_test(db *gorm.DB, model interface{}) ([]ValidationError, error) {
+	var uniqueFields []ValidationError
+	uniqueFields, err := ValidateStruct(model)
+
+	if err != nil {
+		fmt.Printf(err.Error())
+	}
+
+	val := reflect.ValueOf(model)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem() // Dereference pointer to get the actual value
+	}
+	typ := val.Type()
+
+	// Loop through all fields in the struct
+	for i := 0; i < val.NumField(); i++ {
+		field := typ.Field(i)
+		value := val.Field(i)
+
+		// Check if the field tag contains "unique"
+		if strings.Contains(string(field.Tag), "unique") {
+			var count int64
+			query := fmt.Sprintf("%s = ?", strings.ToLower(fmt.Sprintf("\"%s\"", field.Name)))
+
+			// Check for uniqueness in the database
+			if err := db.Model(model).Where(query, value.Interface()).Count(&count).Error; err != nil {
+				return nil, err // Return an error if the query fails
+			}
+
+			if count > 0 {
+				// Field value is not unique
+				uniqueFields = append(uniqueFields, ValidationError{
+					Field:   field.Name,
+					Message: translation.GetTranslation("unique", field.Name, "es"),
+				})
+
+			}
+		}
+	}
+
+	// Return any validation errors found or nil if no errors
+	if len(uniqueFields) > 0 {
+		return uniqueFields, nil
+	}
+
+	return nil, nil
 }

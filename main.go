@@ -3,10 +3,8 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 
-	"github.com/roto17/zeus/lib/actions"
 	"github.com/roto17/zeus/lib/database" // Replace with your actual module path
 	"github.com/roto17/zeus/lib/models"
 	"github.com/roto17/zeus/lib/utils"
@@ -27,16 +25,26 @@ func main() {
 	user := models.User{Name: "John Doe", Desc: "tree"}
 
 	// Validate and get translated error messages
-	errors := utils.ValidateStruct(user)
+	list, errors := utils.UniqueFieldValidator_test(database.DB, user)
 
-	// Print the translated error messages
-	for _, err := range errors {
-		fmt.Printf("%s: %s\n", err.Field, err.Message)
+	if list != nil {
+		for _, err := range list {
+			fmt.Printf("%s: %s\n", err.Field, err.Message)
+		}
 	}
 
-	if err := actions.CreateUser(database.DB, &user); err != nil {
-		log.Fatal("Failed to create user:", err)
+	if errors != nil {
+		fmt.Printf("errors")
 	}
+
+	// // Print the translated error messages
+	// for _, err := range errors {
+	// 	fmt.Printf("%s: %s\n", err.Field, err.Message)
+	// }
+
+	// if err := actions.CreateUser(database.DB, &user); err != nil {
+	// 	log.Fatal("Failed to create user:", err)
+	// }
 
 	// if err != nil {
 	// 	fmt.Println("Validation failed:", err)

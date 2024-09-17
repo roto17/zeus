@@ -11,10 +11,12 @@ var translationMap = map[string]map[string]string{
 	"en": {
 		"required": "{Field} is required",
 		"email":    "{Field} must be a valid email",
+		"unique":   "{Field} must be unique",
 	},
 	"es": {
 		"required": "{Field} es obligatorio",
 		"email":    "{Field} debe ser un correo electrónico válido",
+		"unique":   "{Field} mustos be uniquos",
 	},
 }
 
