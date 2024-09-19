@@ -1,41 +1,19 @@
 package translation
 
 import (
-	"encoding/json"
-	"io"
 
 	// "fmt"
-
-	"log"
-	"os"
 	"strings"
+
+	"github.com/roto17/zeus/lib/config"
 )
 
 // getTranslation fetches the translated message based on the tag and language
 func GetTranslation(tag string, field string, lang string) string {
 
-	file, err := os.Open("./lib/translation/i18n.json")
-	if err != nil {
-		log.Fatalf("Failed to open the file: %v", err)
-	}
-	defer file.Close()
+	config.LoadTranslationFile()
+	translationMap := config.TranslationMap
 
-	// Read the file contents
-	data, err := io.ReadAll(file)
-	if err != nil {
-		log.Fatalf("Failed to read file: %v", err)
-	}
-
-	// Create a variable to hold the translation map
-	var translationMap map[string]map[string]string
-
-	// Unmarshal JSON data into the translation map
-	err = json.Unmarshal(data, &translationMap)
-	if err != nil {
-		log.Fatalf("Failed to unmarshal JSON: %v", err)
-	}
-
-	// ******
 	if translationMap[lang] == nil {
 		// Fallback to English if the language is not supported
 		lang = "en"

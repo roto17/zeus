@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/roto17/zeus/lib/env"
+	"github.com/roto17/zeus/lib/config"
 	"gorm.io/driver/postgres" // or use MySQL driver if needed
 	"gorm.io/gorm"
 )
@@ -13,13 +13,13 @@ var DB *gorm.DB
 
 func InitDB() {
 
-	// dbDriver := env.GetEnv("dbdriver")
-	dbHost := env.GetEnv("dbhost")
-	dbPort := env.GetEnv("dbport")
-	dbName := env.GetEnv("dbname")
-	dbUser := env.GetEnv("dbuser")
-	dbPassword := env.GetEnv("dbpassword")
-	dbSSLMode := env.GetEnv("dbsslmode")
+	// dbDriver := config.GetEnv("dbdriver")
+	dbHost := config.GetEnv("dbhost")
+	dbPort := config.GetEnv("dbport")
+	dbName := config.GetEnv("dbname")
+	dbUser := config.GetEnv("dbuser")
+	dbPassword := config.GetEnv("dbpassword")
+	dbSSLMode := config.GetEnv("dbsslmode")
 
 	dsn := fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
