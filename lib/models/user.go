@@ -8,24 +8,3 @@ type User struct {
 	Jam   string `gorm:"type:varchar(255)" validate:"required"`                      // Jam is required
 	Email string `gorm:"type:varchar(255);unique" validate:"email"`                  // Jam is required
 }
-
-// // ValidateUserFields checks both field-level validation and uniqueness
-// func ValidateUserFields(db *gorm.DB, user *User) error {
-// 	// Field validation using go-playground validator
-// 	if err := utils.ValidateStruct(user); err != nil {
-// 		return err
-// 	}
-
-// 	// Check uniqueness for multiple fields using the reusable unique validator
-// 	if err := utils.UniqueFieldValidator(db, &User{}, "name", user.Name); err != nil {
-// 		return err
-// 	}
-// 	if err := utils.UniqueFieldValidator(db, &User{}, "desc", user.Desc); err != nil {
-// 		return err
-// 	}
-// 	if err := utils.UniqueFieldValidator(db, &User{}, "jam", user.Jam); err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
