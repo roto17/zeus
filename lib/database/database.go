@@ -12,7 +12,7 @@ import (
 var DB *gorm.DB
 
 func InitDB() {
-
+	config.LoadConfig()
 	// dbDriver := config.GetEnv("dbdriver")
 	dbHost := config.GetEnv("dbhost")
 	dbPort := config.GetEnv("dbport")

@@ -11,7 +11,10 @@ import (
 // getTranslation fetches the translated message based on the tag and language
 func GetTranslation(tag string, field string, lang string) string {
 
-	config.LoadTranslationFile()
+	if len(config.TranslationMap) == 0 {
+		config.LoadTranslationFile()
+	}
+
 	translationMap := config.TranslationMap
 
 	if translationMap[lang] == nil {
