@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/roto17/zeus/lib/config"
 	"github.com/roto17/zeus/lib/database" // Replace with your actual module path
 	"github.com/roto17/zeus/lib/models"
 	"github.com/roto17/zeus/lib/utils"
 )
 
 func main() {
+
+	config.LoadConfig()
 
 	lang := os.Getenv("LANG")
 	if lang == "" {
@@ -25,7 +28,7 @@ func main() {
 	user := models.User{Name: "John Doe", Desc: "Desc", Jam: "OKOK"}
 
 	// Validate and get translated error messages
-	list, errors := utils.UniqueFieldValidator(database.DB, user, "en")
+	list, errors := utils.UniqueFieldValidator(database.DB, user, "es")
 
 	if list != nil {
 		for _, err := range list {

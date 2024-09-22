@@ -11,9 +11,9 @@ import (
 // getTranslation fetches the translated message based on the tag and language
 func GetTranslation(tag string, field string, lang string) string {
 
-	if len(config.TranslationMap) == 0 {
-		config.LoadTranslationFile()
-	}
+	// if config.TranslationMap == nil {
+	// 	config.LoadTranslationFile()
+	// }
 
 	translationMap := config.TranslationMap
 

@@ -2,9 +2,9 @@ package database
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/roto17/zeus/lib/config"
+	"github.com/roto17/zeus/lib/logs"
 	"gorm.io/driver/postgres" // or use MySQL driver if needed
 	"gorm.io/gorm"
 )
@@ -12,7 +12,7 @@ import (
 var DB *gorm.DB
 
 func InitDB() {
-	config.LoadConfig()
+
 	// dbDriver := config.GetEnv("dbdriver")
 	dbHost := config.GetEnv("dbhost")
 	dbPort := config.GetEnv("dbport")
@@ -28,7 +28,10 @@ func InitDB() {
 	var err error
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatal("Failed to connect to the database:", err)
+		logs.AddLog("Fatal", "roto", fmt.Sprintf("Failed to connect to the database:%s", err))
+	} else {
+		// log.Println("Database connection established!")
+		logs.AddLog("Info", "roto", "Database connection established!")
 	}
-	log.Println("Database connection established!")
+
 }
