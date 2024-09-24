@@ -28,16 +28,12 @@ func main() {
 	user := models.User{Name: "John Doe2", Desc: "Desc", Jam: "OKOK", Email: "test@test.com"}
 
 	// Validate and get translated error messages
-	validationerrors, error := utils.FieldValidationAll(user, "en")
+	validationerrors := utils.FieldValidationAll(user, "en")
 
 	if validationerrors != nil {
 		for _, err := range validationerrors {
 			fmt.Printf("%s: %s\n", err.Field, err.Message)
 		}
-	}
-
-	if error != nil {
-		fmt.Println("Validation failed:", error)
 	}
 
 }

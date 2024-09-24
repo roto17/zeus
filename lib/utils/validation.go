@@ -8,6 +8,7 @@ import (
 	"github.com/go-playground/validator/v10"
 
 	"github.com/roto17/zeus/lib/database"
+	"github.com/roto17/zeus/lib/logs"
 	"github.com/roto17/zeus/lib/models"
 	"github.com/roto17/zeus/lib/translation"
 )
@@ -37,9 +38,9 @@ func ValidateStruct(model interface{}, language string) []models.ValidationError
 	return errors
 }
 
-func FieldValidationAll(model interface{}, language string) ([]models.ValidationError, error) {
+func FieldValidationAll(model interface{}, language string) []models.ValidationError {
 
-	uniqueFields := ValidateStruct(model, language)
+	listOfErrors := ValidateStruct(model, language)
 
 	val := reflect.ValueOf(model)
 	if val.Kind() == reflect.Ptr {
@@ -59,12 +60,13 @@ func FieldValidationAll(model interface{}, language string) ([]models.Validation
 
 			// Check for uniqueness in the database
 			if err := database.DB.Model(model).Where(query, value.Interface()).Count(&count).Error; err != nil {
-				return nil, err // Return an error if the query fails
+				// return nil, err // Return an error if the query fails
+				logs.AddLog("Fatal", "roto", fmt.Sprintf("Failed to connect to the database:%s", err))
 			}
 
 			if count > 0 {
 				// Field value is not unique
-				uniqueFields = append(uniqueFields, models.ValidationError{
+				listOfErrors = append(listOfErrors, models.ValidationError{
 					Field:   field.Name,
 					Message: translation.GetTranslation("unique", field.Name, language),
 				})
@@ -74,9 +76,9 @@ func FieldValidationAll(model interface{}, language string) ([]models.Validation
 	}
 
 	// Return any validation errors found or nil if no errors
-	if len(uniqueFields) > 0 {
-		return uniqueFields, nil
-	}
+	// if len(listOfErrors) > 0 {
+	return listOfErrors
+	// }
 
-	return nil, nil
+	// return nil
 }
