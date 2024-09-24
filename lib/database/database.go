@@ -30,7 +30,6 @@ func InitDB() {
 	if err != nil {
 		logs.AddLog("Fatal", "roto", fmt.Sprintf("Failed to connect to the database:%s", err))
 	} else {
-		// log.Println("Database connection established!")
 		logs.AddLog("Info", "roto", "Database connection established!")
 	}
 

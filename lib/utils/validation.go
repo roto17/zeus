@@ -5,10 +5,9 @@ import (
 	"reflect"
 	"strings"
 
-	"gorm.io/gorm"
-
 	"github.com/go-playground/validator/v10"
 
+	"github.com/roto17/zeus/lib/database"
 	"github.com/roto17/zeus/lib/models"
 	"github.com/roto17/zeus/lib/translation"
 )
@@ -38,7 +37,7 @@ func ValidateStruct(model interface{}, language string) []models.ValidationError
 	return errors
 }
 
-func UniqueFieldValidator(db *gorm.DB, model interface{}, language string) ([]models.ValidationError, error) {
+func FieldValidationAll(model interface{}, language string) ([]models.ValidationError, error) {
 
 	uniqueFields := ValidateStruct(model, language)
 
@@ -59,7 +58,7 @@ func UniqueFieldValidator(db *gorm.DB, model interface{}, language string) ([]mo
 			query := fmt.Sprintf("%s = ?", strings.ToLower(fmt.Sprintf("\"%s\"", field.Name)))
 
 			// Check for uniqueness in the database
-			if err := db.Model(model).Where(query, value.Interface()).Count(&count).Error; err != nil {
+			if err := database.DB.Model(model).Where(query, value.Interface()).Count(&count).Error; err != nil {
 				return nil, err // Return an error if the query fails
 			}
 

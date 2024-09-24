@@ -11,8 +11,6 @@ import (
 	"github.com/roto17/zeus/lib/logs"
 )
 
-// LoadConfig loads environment variables from a .env file
-
 // Create a variable to hold the translation map
 var TranslationMap map[string]map[string]string
 
@@ -38,14 +36,13 @@ func LoadTranslationFile() {
 		logs.AddLog("Fatal", "roto", "I18n.json file loaded successefuly")
 	}
 
-	// ******
 }
 
+// LoadConfig loads environment variables from a .env file
 func LoadConfig() {
 	LoadTranslationFile()
 	err := godotenv.Load()
 	if err != nil {
-		// log.Fatal("Error loading .env file")
 		logs.AddLog("Fatal", "roto", "Error loading .env file")
 	}
 }

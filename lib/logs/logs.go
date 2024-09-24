@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func AddLog(logType string, username string, message string) error {
+func AddLog(logType string, username string, message string) {
 
 	// Get the caller file and line number
 	_, srcFile, line, ok := runtime.Caller(1)
@@ -19,15 +19,14 @@ func AddLog(logType string, username string, message string) error {
 		// Open or create the log file, appending the new log
 		logFile, err := os.OpenFile("./lib/logs/logfile.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			return fmt.Errorf("could not open or create log file: %v", err)
+			fmt.Printf("Could not open or create log file: %v", err)
 		}
 		defer logFile.Close()
 
 		// Write the log entry to the file
 		if _, err := logFile.WriteString(log); err != nil {
-			return fmt.Errorf("could not write to log file: %v", err)
+			fmt.Printf("Could not write to log file: %v", err)
 		}
 	}
 
-	return nil
 }
