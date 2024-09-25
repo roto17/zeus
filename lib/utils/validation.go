@@ -75,10 +75,5 @@ func FieldValidationAll(model interface{}, language string) []models.ValidationE
 		}
 	}
 
-	// Return any validation errors found or nil if no errors
-	// if len(listOfErrors) > 0 {
 	return listOfErrors
-	// }
-
-	// return nil
 }

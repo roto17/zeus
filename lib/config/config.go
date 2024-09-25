@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 
 	"github.com/roto17/zeus/lib/logs"
@@ -13,6 +14,7 @@ import (
 
 // Create a variable to hold the translation map
 var TranslationMap map[string]map[string]string
+var Router *gin.Engine
 
 func LoadTranslationFile() {
 
