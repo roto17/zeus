@@ -1,21 +1,22 @@
 package router
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/roto17/zeus/lib/database"
 	"github.com/roto17/zeus/lib/models"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 // var secretKey = []byte("your_secret_key")
 
 // JWTAuthMiddleware checks for the JWT token in the Authorization header and verifies the role
-func JWTAuthMiddleware(db *gorm.DB, allowedRoles ...string) gin.HandlerFunc {
+func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -32,11 +33,13 @@ func JWTAuthMiddleware(db *gorm.DB, allowedRoles ...string) gin.HandlerFunc {
 		}
 
 		// Extract the token from the Bearer <token> format
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+		tokenString := strings.TrimSpace(strings.Replace(authHeader, "Bearer ", "", 1))
 
 		// Find the token in the database
 		var tokenRecord models.Token
-		if err := db.Where("token = ?", tokenString).First(&tokenRecord).Error; err != nil {
+		fmt.Printf("%s", tokenString)
+		// fmt.Printf("tzzzzzzzzzzzz")
+		if err := database.DB.Where("token = ?", tokenString).First(&tokenRecord).Error; err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			c.Abort()
 			return

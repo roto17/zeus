@@ -43,6 +43,9 @@ func main() {
 	r.POST("/login", router.Login)
 	r.POST("/register", router.Register)
 
+	// Route for viewing a user by ID (Admin access only)
+	r.GET("/view_user/:id", router.JWTAuthMiddleware("admin"), router.ViewUser)
+
 	// Run the server
 	r.Run() // Default is :8080
 }

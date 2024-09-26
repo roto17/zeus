@@ -2,10 +2,12 @@ package router
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/roto17/zeus/lib/actions"
 	"github.com/roto17/zeus/lib/models"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -136,4 +138,25 @@ func Register(c *gin.Context) {
 
 	// Return success message
 	c.JSON(http.StatusOK, gin.H{"message": "User registered successfully"})
+}
+
+// ViewUser handler
+func ViewUser(c *gin.Context) {
+	// Get the user ID from URL param
+	idParam := c.Param("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	// Use the GetUser function to fetch the user by ID
+	user, err := actions.GetUser(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Return the user
+	c.JSON(http.StatusOK, user)
 }
