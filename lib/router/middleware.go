@@ -3,15 +3,19 @@ package router
 import (
 	"net/http"
 	"strings"
+	"time"
+
+	"github.com/roto17/zeus/lib/models"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
-var secretKey = []byte("your_secret_key")
+// var secretKey = []byte("your_secret_key")
 
 // JWTAuthMiddleware checks for the JWT token in the Authorization header and verifies the role
-func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
+func JWTAuthMiddleware(db *gorm.DB, allowedRoles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -29,6 +33,21 @@ func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 
 		// Extract the token from the Bearer <token> format
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
+		// Find the token in the database
+		var tokenRecord models.Token
+		if err := db.Where("token = ?", tokenString).First(&tokenRecord).Error; err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+			c.Abort()
+			return
+		}
+
+		// Check if the token is expired
+		if tokenRecord.ExpiresAt.Before(time.Now()) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token has expired"})
+			c.Abort()
+			return
+		}
 
 		// Parse the token
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {

@@ -2,38 +2,138 @@ package router
 
 import (
 	"net/http"
-	"strconv"
+	"time"
 
-	"github.com/roto17/zeus/lib/actions" // Adjust based on your project structure
-
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/roto17/zeus/lib/models"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
-func InitRouter() *gin.Engine {
-	router := gin.Default()
+var secretKey = []byte("your_secret_key")
 
-	usersGroup := router.Group("/users")
-	{
-		// usersGroup.Use(JWTAuthMiddleware())
-		// usersGroup.GET("/:id", GetUser)
-		usersGroup.GET("/:id", JWTAuthMiddleware("admin"), GetUser)
-	}
-
-	return router
+// Hash and compare the password using bcrypt
+func checkPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
 }
 
-func GetUser(c *gin.Context) {
-	id, convErr := strconv.Atoi(c.Param("id"))
-	if convErr != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+// GenerateToken generates a JWT for the authenticated user
+func GenerateToken(user models.User) (string, time.Time, error) {
+	// Set expiration time
+	expirationTime := time.Now().Add(time.Hour * 72) // Token expires in 72 hours
+
+	// Create token claims including the role and expiration time
+	claims := jwt.MapClaims{
+		"username": user.Username,
+		"role":     user.Role,
+		"exp":      expirationTime.Unix(),
+	}
+
+	// Create the token with signing method
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// Sign and return the token
+	tokenString, err := token.SignedString(secretKey)
+	if err != nil {
+		return "", expirationTime, err
+	}
+
+	return tokenString, expirationTime, nil
+}
+
+// Login handles user login and JWT generation
+func Login(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+
+	// Extract credentials from request
+	var loginData struct {
+		Username string `json:"username" binding:"required"`
+		Password string `json:"password" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&loginData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
 
-	user, fetchErr := actions.GetUser(id)
-	if fetchErr != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+	// Find the user by username
+	var user models.User
+	if err := db.Where("username = ?", loginData.Username).First(&user).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
 		return
 	}
 
-	c.JSON(http.StatusOK, user)
+	// Check if the password matches
+	if !checkPasswordHash(loginData.Password, user.Password) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
+		return
+	}
+
+	// Generate JWT token
+	token, expiration, err := GenerateToken(user)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate token"})
+		return
+	}
+
+	// Save the token and expiration in the database
+	newToken := models.Token{
+		Token:     token,
+		ExpiresAt: expiration,
+	}
+	if err := db.Create(&newToken).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not save token"})
+		return
+	}
+
+	// Return the token to the client
+	c.JSON(http.StatusOK, gin.H{
+		"token": token,
+	})
+}
+
+// HashPassword hashes a plaintext password using bcrypt
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	return string(bytes), err
+}
+
+// Register handles user registration
+func Register(c *gin.Context) {
+	db := c.MustGet("db").(*gorm.DB)
+
+	// Extract user details from request
+	var registerData struct {
+		Username string `json:"username" binding:"required"`
+		Password string `json:"password" binding:"required"`
+		Role     string `json:"role" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&registerData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		return
+	}
+
+	// Hash the user's password
+	hashedPassword, err := HashPassword(registerData.Password)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not hash password"})
+		return
+	}
+
+	// Create a new user record
+	newUser := models.User{
+		Username: registerData.Username,
+		Password: hashedPassword,
+		Role:     registerData.Role,
+	}
+
+	// Save the user in the database
+	if err := db.Create(&newUser).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not register user"})
+		return
+	}
+
+	// Return success message
+	c.JSON(http.StatusOK, gin.H{"message": "User registered successfully"})
 }

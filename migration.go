@@ -12,8 +12,8 @@ func main() {
 	config.LoadConfig()
 	database.InitDB()
 
-	migrations.MigrateUser()
-	migrations.MigrateLog()
+	// migrations.MigrateUser()
+	migrations.MigrateToken()
 
 	// Create a new user
 	// user := models.User{Name: "John Doe yy", Desc: "okokok", Jam: "uuuuu"}
