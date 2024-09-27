@@ -7,7 +7,6 @@ import (
 	"github.com/roto17/zeus/lib/models"
 	"github.com/roto17/zeus/lib/router"
 
-	"github.com/gin-gonic/gin"
 	"github.com/roto17/zeus/lib/config"
 	"github.com/roto17/zeus/lib/database"
 )
@@ -31,21 +30,7 @@ func main() {
 	}
 
 	// Initialize Gin router
-	r := gin.Default()
-
-	// Middleware to set the database in the context
-	r.Use(func(c *gin.Context) {
-		c.Set("db", database.DB)
-		c.Next()
-	})
-
-	// Routes
-	r.POST("/login", router.Login)
-	r.POST("/register", router.Register)
-
-	// Route for viewing a user by ID (Admin access only)
-	r.GET("/view_user/:id", router.JWTAuthMiddleware("admin"), router.ViewUser)
 
 	// Run the server
-	r.Run() // Default is :8080
+	router.InitRouter().Run(config.GetEnv("apprunningport")) // Default is :8080
 }

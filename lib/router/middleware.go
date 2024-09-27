@@ -1,11 +1,11 @@
 package router
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/roto17/zeus/lib/config"
 	"github.com/roto17/zeus/lib/database"
 	"github.com/roto17/zeus/lib/models"
 
@@ -33,12 +33,11 @@ func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 		}
 
 		// Extract the token from the Bearer <token> format
-		tokenString := strings.TrimSpace(strings.Replace(authHeader, "Bearer ", "", 1))
+		tokenString := strings.Replace(authHeader, "Bearer ", "", 1)
 
 		// Find the token in the database
 		var tokenRecord models.Token
-		fmt.Printf("%s", tokenString)
-		// fmt.Printf("tzzzzzzzzzzzz")
+
 		if err := database.DB.Where("token = ?", tokenString).First(&tokenRecord).Error; err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			c.Abort()
@@ -57,7 +56,7 @@ func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, http.ErrAbortHandler
 			}
-			return secretKey, nil
+			return []byte(config.GetEnv("secretkey")), nil
 		})
 
 		if err != nil || !token.Valid {

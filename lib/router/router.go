@@ -1,19 +1,36 @@
 package router
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"github.com/roto17/zeus/lib/actions"
+	"github.com/roto17/zeus/lib/config"
+	"github.com/roto17/zeus/lib/database"
 	"github.com/roto17/zeus/lib/models"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
-var secretKey = []byte("your_secret_key")
+// var secretKey = []byte("your_secret_key")
+
+func InitRouter() *gin.Engine {
+	r := gin.Default()
+
+	// Routes
+	r.POST("/login", Login)
+	r.POST("/register", Register)
+	r.POST("/logout", Logout)
+
+	// Route for viewing a user by ID (Admin access only)
+	r.GET("/view_user/:id", JWTAuthMiddleware("admin"), ViewUser)
+
+	return r
+}
 
 // Hash and compare the password using bcrypt
 func checkPasswordHash(password, hash string) bool {
@@ -36,8 +53,10 @@ func GenerateToken(user models.User) (string, time.Time, error) {
 	// Create the token with signing method
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
+	fmt.Printf("%s", []byte(config.GetEnv("secretkey")))
+
 	// Sign and return the token
-	tokenString, err := token.SignedString(secretKey)
+	tokenString, err := token.SignedString([]byte(config.GetEnv("secretkey")))
 	if err != nil {
 		return "", expirationTime, err
 	}
@@ -47,7 +66,7 @@ func GenerateToken(user models.User) (string, time.Time, error) {
 
 // Login handles user login and JWT generation
 func Login(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := database.DB
 
 	// Extract credentials from request
 	var loginData struct {
@@ -103,7 +122,7 @@ func HashPassword(password string) (string, error) {
 
 // Register handles user registration
 func Register(c *gin.Context) {
-	db := c.MustGet("db").(*gorm.DB)
+	db := database.DB
 
 	// Extract user details from request
 	var registerData struct {
@@ -159,4 +178,36 @@ func ViewUser(c *gin.Context) {
 
 	// Return the user
 	c.JSON(http.StatusOK, user)
+}
+
+// Logout handles user logout by invalidating the JWT token
+func Logout(c *gin.Context) {
+	db := database.DB
+
+	// Get the token from the Authorization header
+	tokenString := c.GetHeader("Authorization")
+	if tokenString == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Token not provided"})
+		return
+	}
+
+	// Strip "Bearer " if it's included in the token string
+	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+
+	// Find the token in the database
+	var token models.Token
+	if err := db.Where("token = ?", tokenString).First(&token).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+		return
+	}
+
+	// Set the expiration to the current time to invalidate the token
+	token.ExpiresAt = time.Now()
+	if err := db.Save(&token).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not invalidate token"})
+		return
+	}
+
+	// Return success response
+	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 }
