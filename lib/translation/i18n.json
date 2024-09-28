@@ -2,11 +2,23 @@
     "en": {
       "required": "{Field} is required",
       "email": "{Field} must be a valid email",
-      "unique": "{Field} must be unique"
+      "unique": "{Field} must be unique",
+      "required_header": "Authorization header required",
+      "invalid_token_format": "Invalid token format",
+      "invalid_or_expired_token": "Invalid or expired token",
+      "invalid_token": "Invalid token",
+      "invalid_token_claims": "Invalid token claims",
+      "permission_denied": "You don't have permission to access this resource"
     },
     "fr": {
       "required": "{Field} est requis",
       "email": "{Field} doit être un email valide",
-      "unique": "{Field} doit être unique"
+      "unique": "{Field} doit être unique",
+      "required_header": "L'en-tête d'autorisation est requis",
+      "invalid_token_format": "Format de jeton invalide",
+      "invalid_or_expired_token": "Jeton invalide ou expiré",
+      "invalid_token": "Jeton invalide",
+      "invalid_token_claims": "Réclamations de jetons invalides",
+      "permission_denied": "Vous n'avez pas la permission d'accéder à cette ressource"
     }
   }

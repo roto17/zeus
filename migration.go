@@ -12,7 +12,7 @@ func main() {
 	config.LoadConfig()
 	database.InitDB()
 
-	// migrations.MigrateUser()
+	migrations.MigrateUser()
 	migrations.MigrateToken()
 
 	// Create a new user
