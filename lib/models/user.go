@@ -11,7 +11,7 @@ package models
 
 type User struct {
 	ID       uint   `gorm:"primaryKey"`
-	Username string `gorm:"uniqueIndex"`
-	Password string `json:"-"`
-	Role     string
+	Username string `gorm:"type:varchar(255);unique" validate:"required"`
+	Password string `gorm:"type:varchar(50)" validate:"required"`
+	Role     string `gorm:"type:varchar(50)" validate:"required"`
 }

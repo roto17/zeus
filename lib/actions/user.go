@@ -63,6 +63,7 @@ func Login(c *gin.Context) {
 		Username string `json:"username" binding:"required"`
 		Password string `json:"password" binding:"required"`
 	}
+
 	if err := c.ShouldBindJSON(&loginData); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
@@ -106,21 +107,28 @@ func Login(c *gin.Context) {
 
 // Register handles user registration
 func Register(c *gin.Context) {
+
+	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
+
 	db := database.DB
 
-	// Extract user details from request
-	var registerData struct {
-		Username string `json:"username" binding:"required"`
-		Password string `json:"password" binding:"required"`
-		Role     string `json:"role" binding:"required"`
-	}
-	if err := c.ShouldBindJSON(&registerData); err != nil {
+	var user models.User
+
+	// Bind the incoming JSON to the user struct
+	if err := c.ShouldBindJSON(&user); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
 
+	// Validate and get translated error messages
+	validationErrors := utils.FieldValidationAll(user, requested_language)
+	if validationErrors != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"errors": validationErrors})
+		return
+	}
+
 	// Hash the user's password
-	hashedPassword, err := utils.HashPassword(registerData.Password)
+	hashedPassword, err := utils.HashPassword(user.Password)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not hash password"})
 		return
@@ -128,9 +136,9 @@ func Register(c *gin.Context) {
 
 	// Create a new user record
 	newUser := models.User{
-		Username: registerData.Username,
+		Username: user.Username,
 		Password: hashedPassword,
-		Role:     registerData.Role,
+		Role:     user.Role,
 	}
 
 	// Save the user in the database
