@@ -8,15 +8,18 @@ import (
 // var secretKey = []byte("your_secret_key")
 
 func InitRouter() *gin.Engine {
-	r := gin.Default()
+	router := gin.Default()
+
+	// Apply the middleware globally
+	router.Use(SetHeaderVariableMiddleware())
 
 	// Routes
-	r.POST("/login", actions.Login)
-	r.POST("/register", actions.Register)
-	r.POST("/logout", actions.Logout)
+	router.POST("/login", actions.Login)
+	router.POST("/register", actions.Register)
+	router.POST("/logout", actions.Logout)
 
 	// Route for viewing a user by ID (Admin access only)
-	r.GET("/view_user/:id", JWTAuthMiddleware("admin"), actions.ViewUser)
+	router.GET("/view_user/:id", JWTAuthMiddleware("admin"), actions.ViewUser)
 
-	return r
+	return router
 }

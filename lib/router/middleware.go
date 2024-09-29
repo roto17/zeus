@@ -20,18 +20,20 @@ import (
 // JWTAuthMiddleware checks for the JWT token in the Authorization header and verifies the role
 func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		lang := utils.Coalesce(c.GetHeader("Accept-Language"), "en")
+		// requested_language := utils.Coalesce(c.GetHeader("Accept-Language"), "en")
+
+		requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
 
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("required_header", "", lang)})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("required_header", "", requested_language)})
 			c.Abort()
 			return
 		}
 
 		// Ensure the token has the correct Bearer format
 		if !strings.HasPrefix(authHeader, "Bearer ") {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("invalid_token_format", "", lang)})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("invalid_token_format", "", requested_language)})
 			c.Abort()
 			return
 		}
@@ -43,7 +45,7 @@ func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 		var tokenRecord models.Token
 
 		if err := database.DB.Where("token = ?", tokenString).First(&tokenRecord).Error; err != nil || tokenRecord.ExpiresAt.Before(time.Now()) {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("invalid_or_expired_token", "", lang)})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("invalid_or_expired_token", "", requested_language)})
 			c.Abort()
 			return
 		}
@@ -57,7 +59,7 @@ func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 		})
 
 		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("invalid_token", "", lang)})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("invalid_token", "", requested_language)})
 			c.Abort()
 			return
 		}
@@ -65,7 +67,7 @@ func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 		// Extract the claims
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("invalid_token_claims", "", lang)})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("invalid_token_claims", "", requested_language)})
 			c.Abort()
 			return
 		}
@@ -80,7 +82,17 @@ func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 		}
 
 		// If the user's role is not allowed
-		c.JSON(http.StatusForbidden, gin.H{"error": translation.GetTranslation("permission_denied", "", lang)})
+		c.JSON(http.StatusForbidden, gin.H{"error": translation.GetTranslation("permission_denied", "", requested_language)})
 		c.Abort()
+	}
+}
+
+// Middleware to set a variable in the context
+func SetHeaderVariableMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Set a variable in the context
+		c.Set("requested_language", utils.Coalesce(c.GetHeader("Accept-Language"), "en"))
+		// Continue to the next handler
+		c.Next()
 	}
 }
