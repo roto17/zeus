@@ -6,7 +6,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/roto17/zeus/lib/config"
-	"github.com/roto17/zeus/lib/models"
+	model_user "github.com/roto17/zeus/lib/models/users"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -17,7 +17,7 @@ func HashPassword(password string) (string, error) {
 }
 
 // GenerateToken generates a JWT for the authenticated user
-func GenerateToken(user models.User) (string, time.Time, error) {
+func GenerateToken(user model_user.User) (string, time.Time, error) {
 	// Set expiration time
 	expirationTime := time.Now().Add(time.Hour * 72) // Token expires in 72 hours
 

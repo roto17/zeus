@@ -5,7 +5,7 @@ import (
 
 	"github.com/roto17/zeus/lib/database" // Replace with your actual module path
 	"github.com/roto17/zeus/lib/logs"
-	"github.com/roto17/zeus/lib/models"
+	models "github.com/roto17/zeus/lib/models/logs"
 )
 
 func MigrateLog() {

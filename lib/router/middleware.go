@@ -7,7 +7,7 @@ import (
 
 	"github.com/roto17/zeus/lib/config"
 	"github.com/roto17/zeus/lib/database"
-	"github.com/roto17/zeus/lib/models"
+	model_token "github.com/roto17/zeus/lib/models/tokens"
 	"github.com/roto17/zeus/lib/translation"
 	"github.com/roto17/zeus/lib/utils"
 
@@ -42,7 +42,7 @@ func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 		tokenString := strings.Replace(authHeader, "Bearer ", "", 1)
 
 		// Find the token in the database
-		var tokenRecord models.Token
+		var tokenRecord model_token.Token
 
 		if err := database.DB.Where("token = ?", tokenString).First(&tokenRecord).Error; err != nil || tokenRecord.ExpiresAt.Before(time.Now()) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("invalid_or_expired_token", "", requested_language)})

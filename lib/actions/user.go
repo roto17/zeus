@@ -8,28 +8,30 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/roto17/zeus/lib/database"
-	"github.com/roto17/zeus/lib/models"
+	model_user "github.com/roto17/zeus/lib/models/users"
+
+	model_token "github.com/roto17/zeus/lib/models/tokens"
 	"github.com/roto17/zeus/lib/utils"
 )
 
-func CreateUser(user *models.User) error {
+func CreateUser(user *model_user.User) error {
 	result := database.DB.Create(&user)
 	return result.Error
 }
 
-func GetUser(id int) (models.User, error) {
-	var user models.User
+func GetUser(id int) (model_user.User, error) {
+	var user model_user.User
 	result := database.DB.First(&user, id)
 	return user, result.Error
 }
 
-func UpdateUser(user *models.User) error {
+func UpdateUser(user *model_user.User) error {
 	result := database.DB.Save(&user)
 	return result.Error
 }
 
 func DeleteUser(id int) error {
-	result := database.DB.Delete(&models.User{}, id)
+	result := database.DB.Delete(&model_user.User{}, id)
 	return result.Error
 }
 
@@ -70,7 +72,7 @@ func Login(c *gin.Context) {
 	}
 
 	// Find the user by username
-	var user models.User
+	var user model_user.User
 	if err := db.Where("username = ?", loginData.Username).First(&user).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
 		return
@@ -90,7 +92,7 @@ func Login(c *gin.Context) {
 	}
 
 	// Save the token and expiration in the database
-	newToken := models.Token{
+	newToken := model_token.Token{
 		Token:     token,
 		ExpiresAt: expiration,
 	}
@@ -109,15 +111,19 @@ func Login(c *gin.Context) {
 func Register(c *gin.Context) {
 
 	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
-
 	db := database.DB
-
-	var user models.User
+	var new_user model_user.CreateUserInput
 
 	// Bind the incoming JSON to the user struct
-	if err := c.ShouldBindJSON(&user); err != nil {
+	if err := c.ShouldBindJSON(&new_user); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
+	}
+
+	user := model_user.User{
+		Username: new_user.Username,
+		Password: new_user.Password,
+		Role:     new_user.Role,
 	}
 
 	// Validate and get translated error messages
@@ -127,6 +133,10 @@ func Register(c *gin.Context) {
 		return
 	}
 
+	// fmt.Printf("**************\n")
+	// fmt.Printf("%s", user.Password)
+	// fmt.Printf("**************\n")
+
 	// Hash the user's password
 	hashedPassword, err := utils.HashPassword(user.Password)
 	if err != nil {
@@ -135,7 +145,7 @@ func Register(c *gin.Context) {
 	}
 
 	// Create a new user record
-	newUser := models.User{
+	newUser := model_user.User{
 		Username: user.Username,
 		Password: hashedPassword,
 		Role:     user.Role,
@@ -166,7 +176,7 @@ func Logout(c *gin.Context) {
 	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
 
 	// Find the token in the database
-	var token models.Token
+	var token model_token.Token
 	if err := db.Where("token = ?", tokenString).First(&token).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 		return

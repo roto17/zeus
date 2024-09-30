@@ -10,8 +10,21 @@ package models
 // }
 
 type User struct {
-	ID       uint   `gorm:"primaryKey"`
-	Username string `gorm:"type:varchar(255);unique" validate:"required"`
-	Password string `gorm:"type:varchar(50)" validate:"required"`
-	Role     string `gorm:"type:varchar(50)" validate:"required"`
+	ID       uint   `gorm:"primaryKey" json:"id"`
+	Username string `gorm:"type:varchar(255);unique" validate:"required" json:"username"`
+	Password string `gorm:"type:varchar(255)" validate:"required" json:"-"`
+	Role     string `gorm:"type:varchar(50)" validate:"required" json:"role"`
+}
+
+// type ReadUser struct {
+// 	ID       uint   `json:"id"`
+// 	Username string `json:"username"`
+// 	Password string `json:"-"`
+// 	Role     string `json:"role"`
+// }
+
+type CreateUserInput struct {
+	Username string `json:"username"`
+	Password string `json:"password"` // No json:"-" here, so we can bind it
+	Role     string `json:"Role"`
 }

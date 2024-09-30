@@ -9,7 +9,7 @@ import (
 
 	"github.com/roto17/zeus/lib/database"
 	"github.com/roto17/zeus/lib/logs"
-	"github.com/roto17/zeus/lib/models"
+	model_validation "github.com/roto17/zeus/lib/models/validations"
 	"github.com/roto17/zeus/lib/translation"
 )
 
@@ -17,9 +17,13 @@ import (
 var validate = validator.New()
 
 // ValidateUser function to validate a User instance
-func ValidateStruct(model interface{}, language string) []models.ValidationError {
+func ValidateStruct(model interface{}, language string) []model_validation.ValidationError {
 	err := validate.Struct(model)
-	var errors []models.ValidationError
+	var errors []model_validation.ValidationError
+
+	// fmt.Printf("**************\n")
+	// fmt.Printf("%s", model.(model_user.User).Password)
+	// fmt.Printf("**************\n")
 
 	if err != nil {
 		for _, fieldErr := range err.(validator.ValidationErrors) {
@@ -28,7 +32,7 @@ func ValidateStruct(model interface{}, language string) []models.ValidationError
 			message := translation.GetTranslation(fieldErr.Tag(), fieldErr.StructField(), language)
 
 			// Append the custom error message to the errors slice
-			errors = append(errors, models.ValidationError{
+			errors = append(errors, model_validation.ValidationError{
 				Field:   fieldErr.StructField(),
 				Message: message,
 			})
@@ -38,7 +42,7 @@ func ValidateStruct(model interface{}, language string) []models.ValidationError
 	return errors
 }
 
-func FieldValidationAll(model interface{}, language string) []models.ValidationError {
+func FieldValidationAll(model interface{}, language string) []model_validation.ValidationError {
 
 	listOfErrors := ValidateStruct(model, language)
 
@@ -66,7 +70,7 @@ func FieldValidationAll(model interface{}, language string) []models.ValidationE
 
 			if count > 0 {
 				// Field value is not unique
-				listOfErrors = append(listOfErrors, models.ValidationError{
+				listOfErrors = append(listOfErrors, model_validation.ValidationError{
 					Field:   field.Name,
 					Message: translation.GetTranslation("unique", field.Name, language),
 				})
