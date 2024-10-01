@@ -31,6 +31,15 @@ func ValidateStruct(model interface{}, language string) []model_validation.Valid
 
 			message := translation.GetTranslation(fieldErr.Tag(), fieldErr.StructField(), language)
 
+			// Check if the error tag is "oneof"
+			if fieldErr.Tag() == "oneof" {
+				// Dynamically retrieve the allowed values from the struct tag
+				allowedValues := getOneOfTagValue(model, fieldErr.StructField())
+
+				// Replace the {Values} placeholder in the error message
+				message = strings.Replace(message, "{Values}", allowedValues, 1)
+			}
+
 			// Append the custom error message to the errors slice
 			errors = append(errors, model_validation.ValidationError{
 				Field:   fieldErr.StructField(),
@@ -80,4 +89,31 @@ func FieldValidationAll(model interface{}, language string) []model_validation.V
 	}
 
 	return listOfErrors
+}
+
+// Helper function to extract the "oneof" tag value from the struct
+func getOneOfTagValue(model interface{}, fieldName string) string {
+	// Get the type of the model
+	val := reflect.ValueOf(model)
+
+	// Ensure that we're dealing with a pointer to a struct
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem() // Dereference the pointer to get to the struct
+	}
+
+	// Get the field by name and check if it exists
+	field, ok := val.Type().FieldByName(fieldName)
+	if !ok {
+		return "" // Return an empty string if field not found
+	}
+
+	// Extract the `validate` tag and split to find the "oneof" values
+	tag := field.Tag.Get("validate")
+	if strings.Contains(tag, "oneof=") {
+		// Extract the values inside the "oneof" tag
+		oneOfValues := strings.Split(tag, "oneof=")[1]
+		return oneOfValues
+	}
+
+	return ""
 }
