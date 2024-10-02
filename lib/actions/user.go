@@ -1,6 +1,8 @@
 package actions
 
 import (
+	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -12,6 +14,7 @@ import (
 	model_user "github.com/roto17/zeus/lib/models/users"
 	"github.com/roto17/zeus/lib/translation" // Assuming translation package handles translations
 	"github.com/roto17/zeus/lib/utils"
+	"gopkg.in/gomail.v2"
 )
 
 func CreateUser(user *model_user.User) error {
@@ -174,8 +177,29 @@ func Register(c *gin.Context) {
 		return
 	}
 
+	// Generate JWT token
+	token, expiration, err := utils.GenerateToken(user)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("token_generation_failed", "", requested_language)})
+		return
+	}
+	log.Println("", expiration) // to be removed
+
+	appBaseURL := "http://localhost:8080"    // Your local app URL for development
+	smtpUser := "zerouali.khalid2@gmail.com" // Your Gmail address
+	smtpPass := "hioz iabu fxov xxuu"        // Use the App Password from Google (not your Gmail password)
+	smtpHost := "smtp.gmail.com"             // Gmail's SMTP server
+	smtpPort := 587                          // Replace with your SMTP port
+
+	if err := SendVerificationEmail(user.Email, token, appBaseURL, smtpUser, smtpPass, smtpHost, smtpPort); err != nil {
+		log.Println("Failed to send email:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send verification email"})
+		return
+	}
+
 	// Return success message
 	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("registration_successful", "", requested_language)})
+
 }
 
 // Logout handles logout by invalidating the JWT token
@@ -209,4 +233,29 @@ func Logout(c *gin.Context) {
 
 	// Return success response
 	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("logout_successful", "", requested_language)})
+}
+
+func SendVerificationEmail(userEmail, token, appBaseURL, smtpUser, smtpPass, smtpHost string, smtpPort int) error {
+	// Create the verification URL
+	verificationURL := fmt.Sprintf("%s/verify-email?token=%s", appBaseURL, token)
+
+	// Email content
+	subject := "Email Verification"
+	body := fmt.Sprintf("Please click the following link to verify your email: %s", verificationURL)
+
+	// Set up the email message
+	message := gomail.NewMessage()
+	message.SetHeader("From", smtpUser)
+	message.SetHeader("To", userEmail)
+	message.SetHeader("Subject", subject)
+	message.SetBody("text/plain", body)
+
+	// Set up the SMTP dialer
+	dialer := gomail.NewDialer(smtpHost, smtpPort, smtpUser, smtpPass)
+
+	// Send the email
+	if err := dialer.DialAndSend(message); err != nil {
+		return err
+	}
+	return nil
 }

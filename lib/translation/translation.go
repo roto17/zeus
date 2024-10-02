@@ -1,10 +1,6 @@
 package translation
 
 import (
-
-	// "fmt"
-	"strings"
-
 	"github.com/roto17/zeus/lib/config"
 )
 
@@ -28,6 +24,5 @@ func GetTranslation(tag string, field string, lang string) string {
 		translation = translationMap["en"][tag]
 	}
 
-	// Replace {Field} with the actual field name
-	return strings.Replace(translation, "{Field}", field, 1)
+	return translation
 }

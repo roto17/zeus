@@ -23,6 +23,7 @@ func GenerateToken(user model_user.User) (string, time.Time, error) {
 
 	// Create token claims including the role and expiration time
 	claims := jwt.MapClaims{
+		"user_id":  user.ID,
 		"username": user.Username,
 		"role":     user.Role,
 		"exp":      expirationTime.Unix(),
@@ -38,6 +39,18 @@ func GenerateToken(user model_user.User) (string, time.Time, error) {
 	if err != nil {
 		return "", expirationTime, err
 	}
+
+	// // Store the token in the Token table
+	// tokenEntry := model_token.Token{
+	// 	Token:     tokenString,
+	// 	ExpiresAt: expirationTime,
+	// 	CreatedAt: time.Now(),
+	// 	UpdatedAt: time.Now(),
+	// }
+
+	// if err := database.DB.Create(&tokenEntry).Error; err != nil {
+	// 	return "", expirationTime, err
+	// }
 
 	return tokenString, expirationTime, nil
 }

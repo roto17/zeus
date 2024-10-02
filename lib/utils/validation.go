@@ -29,7 +29,9 @@ func ValidateStruct(model interface{}, language string) []model_validation.Valid
 		for _, fieldErr := range err.(validator.ValidationErrors) {
 			// Get the translated error message
 
-			message := translation.GetTranslation(fieldErr.Tag(), fieldErr.StructField(), language)
+			message := strings.Replace(translation.GetTranslation(fieldErr.Tag(), fieldErr.StructField(), language), "{Field}", fieldErr.StructField(), 1) // Replace {Field} with the actual field name
+
+			// message = strings.Replace(message, "{Field}", fieldErr.StructField(), 1)
 
 			// Check if the error tag is "oneof"
 			if fieldErr.Tag() == "oneof" {
@@ -39,6 +41,7 @@ func ValidateStruct(model interface{}, language string) []model_validation.Valid
 				// Replace the {Values} placeholder in the error message
 				message = strings.Replace(message, "{Values}", allowedValues, 1)
 			}
+			fmt.Printf("%s", fieldErr.StructField())
 
 			// Append the custom error message to the errors slice
 			errors = append(errors, model_validation.ValidationError{
@@ -81,7 +84,7 @@ func FieldValidationAll(model interface{}, language string) []model_validation.V
 				// Field value is not unique
 				listOfErrors = append(listOfErrors, model_validation.ValidationError{
 					Field:   field.Name,
-					Message: translation.GetTranslation("unique", field.Name, language),
+					Message: strings.Replace(translation.GetTranslation("unique", field.Name, language), "{Field}", field.Name, 1), // Replace {Field} with the actual field name
 				})
 
 			}

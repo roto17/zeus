@@ -2,7 +2,9 @@ package router
 
 import (
 	"net/http"
+	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/roto17/zeus/lib/actions"
 	"github.com/roto17/zeus/lib/translation"
@@ -16,6 +18,15 @@ func InitRouter() *gin.Engine {
 
 	// Apply the middleware globally
 	router.Use(SetHeaderVariableMiddleware())
+
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000"}, // Add allowed origins here
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	// Group routes under the /api prefix
 	api := router.Group("/api")
