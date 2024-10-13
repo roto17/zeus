@@ -37,6 +37,7 @@ func InitRouter() *gin.Engine {
 
 	// Route for viewing a user by ID (Admin access only)
 	api.GET("/view_user/:id", JWTAuthMiddleware("admin"), actions.ViewUser)
+	router.GET("verify-email", actions.Verify)
 
 	// Handle undefined routes (still under the /api prefix)
 	router.NoRoute(func(c *gin.Context) {

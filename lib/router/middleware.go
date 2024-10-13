@@ -1,6 +1,7 @@
 package router
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -44,7 +45,7 @@ func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 		// Find the token in the database
 		var tokenRecord model_token.Token
 
-		if err := database.DB.Where("token = ?", tokenString).First(&tokenRecord).Error; err != nil || tokenRecord.ExpiresAt.Before(time.Now()) {
+		if err := database.DB.Where("token = ?", tokenString).First(&tokenRecord).Error; err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("invalid_or_expired_token", "", requested_language)})
 			c.Abort()
 			return
@@ -74,6 +75,44 @@ func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 
 		// Check if the role is allowed
 		userRole := claims["role"].(string)
+		userIsVerified := claims["verified"].(bool)
+		exp, ok := claims["exp"].(float64)
+
+		if !ok {
+			// Handle the case where "exp" claim is missing or not a float64 (Unix timestamp)
+			fmt.Println("Token has no expiration time or invalid format")
+			return
+		}
+
+		// Convert exp from float64 to int64 for Unix timestamp
+		expirationTime := int64(exp)
+
+		// Convert Unix timestamp back to time.Time for better handling
+		expiration := time.Unix(expirationTime, 0)
+
+		fmt.Printf("------------------\n")
+		fmt.Printf("%v", expiration)
+		fmt.Printf("------------------\n")
+
+		// Check if the token has expired
+		if time.Now().After(expiration) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Login Again"})
+			c.Abort()
+			return
+		}
+
+		if !userIsVerified {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "can't login using this method"})
+			c.Abort()
+			return
+		}
+
+		if !userIsVerified {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "can't login using this method"})
+			c.Abort()
+			return
+		}
+
 		for _, allowedRole := range allowedRoles {
 			if userRole == allowedRole {
 				c.Next() // Proceed to the next handler

@@ -17,27 +17,32 @@ func HashPassword(password string) (string, error) {
 }
 
 // GenerateToken generates a JWT for the authenticated user
-func GenerateToken(user model_user.User) (string, time.Time, error) {
+func GenerateToken(user model_user.User) (string, error) {
 	// Set expiration time
-	expirationTime := time.Now().Add(time.Hour * 72) // Token expires in 72 hours
+	expirationTime := time.Now().Add(time.Hour * 24) // Token expires in 24 hours
 
 	// Create token claims including the role and expiration time
 	claims := jwt.MapClaims{
-		"user_id":  user.ID,
+		"user_id":  fmt.Sprintf("%v", user.ID),
 		"username": user.Username,
 		"role":     user.Role,
 		"exp":      expirationTime.Unix(),
+		"verified": !user.VerifiedAt.IsZero(),
 	}
+
+	// fmt.Printf("-------------------------\n")
+	// fmt.Printf("%v", user.VerifiedAt.Second())
+	// fmt.Printf("-------------------------\n")
 
 	// Create the token with signing method
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	fmt.Printf("%s", []byte(config.GetEnv("secretkey")))
+	// fmt.Printf("%s", []byte(config.GetEnv("secretkey")))
 
 	// Sign and return the token
 	tokenString, err := token.SignedString([]byte(config.GetEnv("secretkey")))
 	if err != nil {
-		return "", expirationTime, err
+		return "", err
 	}
 
 	// // Store the token in the Token table
@@ -52,7 +57,7 @@ func GenerateToken(user model_user.User) (string, time.Time, error) {
 	// 	return "", expirationTime, err
 	// }
 
-	return tokenString, expirationTime, nil
+	return tokenString, nil
 }
 
 // Hash and compare the password using bcrypt

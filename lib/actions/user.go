@@ -2,13 +2,14 @@ package actions
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/roto17/zeus/lib/config"
 	"github.com/roto17/zeus/lib/database"
 	model_token "github.com/roto17/zeus/lib/models/tokens"
 	model_user "github.com/roto17/zeus/lib/models/users"
@@ -93,8 +94,14 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	// Check if the password matches
+	if user.VerifiedAt.IsZero() {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "should verify your mail address"})
+		return
+	}
+
 	// Generate JWT token
-	token, expiration, err := utils.GenerateToken(user)
+	token, err := utils.GenerateToken(user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("token_generation_failed", "", requested_language)})
 		return
@@ -102,9 +109,11 @@ func Login(c *gin.Context) {
 
 	// Save the token and expiration in the database
 	newToken := model_token.Token{
-		Token:     token,
-		ExpiresAt: expiration,
+		Token:  token,
+		UserID: user.ID,
+		User:   user,
 	}
+
 	if err := db.Create(&newToken).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("token_save_failed", "", requested_language)})
 		return
@@ -178,27 +187,40 @@ func Register(c *gin.Context) {
 	}
 
 	// Generate JWT token
-	token, expiration, err := utils.GenerateToken(user)
+	token, err := utils.GenerateToken(newUser)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("token_generation_failed", "", requested_language)})
 		return
 	}
-	log.Println("", expiration) // to be removed
 
-	appBaseURL := "http://localhost:8080"    // Your local app URL for development
-	smtpUser := "zerouali.khalid2@gmail.com" // Your Gmail address
-	smtpPass := "hioz iabu fxov xxuu"        // Use the App Password from Google (not your Gmail password)
-	smtpHost := "smtp.gmail.com"             // Gmail's SMTP server
-	smtpPort := 587                          // Replace with your SMTP port
+	// fmt.Printf("%v", newUser)
 
-	if err := SendVerificationEmail(user.Email, token, appBaseURL, smtpUser, smtpPass, smtpHost, smtpPort); err != nil {
-		log.Println("Failed to send email:", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send verification email"})
+	// Save the token and expiration in the database
+	newToken := model_token.Token{
+		Token:  token,
+		UserID: newUser.ID,
+		User:   newUser,
+	}
+
+	if err := db.Create(&newToken).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("token_save_failed", "", requested_language)})
 		return
 	}
 
+	// appBaseURL := "http://localhost:8080"    // Your local app URL for development
+	// smtpUser := "zerouali.khalid2@gmail.com" // Your Gmail address
+	// smtpPass := "hioz iabu fxov xxuu"        // Use the App Password from Google (not your Gmail password)
+	// smtpHost := "smtp.gmail.com"             // Gmail's SMTP server
+	// smtpPort := 587                          // Replace with your SMTP port
+
+	// if err := SendVerificationEmail(user.Email, token, appBaseURL, smtpUser, smtpPass, smtpHost, smtpPort); err != nil {
+	// 	log.Println("Failed to send email:", err)
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send verification email"})
+	// 	return
+	// }
+
 	// Return success message
-	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("registration_successful", "", requested_language)})
+	c.JSON(http.StatusOK, gin.H{"message": "Registration done,please verify your mail address"})
 
 }
 
@@ -225,7 +247,7 @@ func Logout(c *gin.Context) {
 	}
 
 	// Set the expiration to the current time to invalidate the token
-	token.ExpiresAt = time.Now()
+	// token.ExpiresAt = time.Now()
 	if err := db.Save(&token).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("token_invalidation_failed", "", requested_language)})
 		return
@@ -237,7 +259,7 @@ func Logout(c *gin.Context) {
 
 func SendVerificationEmail(userEmail, token, appBaseURL, smtpUser, smtpPass, smtpHost string, smtpPort int) error {
 	// Create the verification URL
-	verificationURL := fmt.Sprintf("%s/verify-email?token=%s", appBaseURL, token)
+	verificationURL := fmt.Sprintf("%s/verify-email?signature=%s", appBaseURL, token)
 
 	// Email content
 	subject := "Email Verification"
@@ -258,4 +280,104 @@ func SendVerificationEmail(userEmail, token, appBaseURL, smtpUser, smtpPass, smt
 		return err
 	}
 	return nil
+}
+
+// Register handles registration
+func Verify(c *gin.Context) {
+	tokenString := c.Query("signature")
+	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
+
+	if tokenString == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "need a signature"})
+		return
+	}
+
+	// Find the token in the database
+	// var tokenRecord model_token.Token
+
+	// if err := database.DB.Where("token = ?", tokenString).First(&tokenRecord).Error; err != nil /*|| tokenRecord.ExpiresAt.Before(time.Now())*/ {
+	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("invalid_or_expired_token", "", requested_language)})
+	// 	c.Abort()
+	// 	return
+	// }
+
+	// Parse the token
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, http.ErrAbortHandler
+		}
+		return []byte(config.GetEnv("secretkey")), nil
+	})
+
+	if err != nil || !token.Valid {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("invalid_token", "", requested_language)})
+		c.Abort()
+		return
+	}
+
+	// Extract the claims
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("invalid_token_claims", "", requested_language)})
+		c.Abort()
+		return
+	}
+
+	// Check if the role is allowed
+
+	idParam := claims["user_id"].(string)
+	// id := idParam(int)
+
+	// fmt.Printf("***************\n")
+	// fmt.Printf("%v", claims["verified_at"].(bool))
+	// fmt.Printf("***************\n")
+
+	user_id, err := strconv.Atoi(idParam)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("invalid_id", "", requested_language)})
+		return
+	}
+
+	// Use the GetUser function to fetch the user by ID
+	// user, err := GetUser(user_id)
+	// if err != nil {
+	// 	c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
+	// 	return
+	// }
+
+	var user model_user.User
+	result := database.DB.First(&user, user_id)
+	// return user, result.Error
+
+	if result.Error != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
+		return
+	}
+
+	if !user.VerifiedAt.IsZero() {
+		c.JSON(http.StatusOK, gin.H{"error": "already verified"})
+	} else {
+
+		// tokenRecord.ExpiresAt = time.Now()
+
+		// if err := database.DB.Save(&tokenRecord).Error; err != nil {
+		// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "cannot update token expire datetm"})
+		// 	return
+		// }
+
+		user.VerifiedAt = time.Now()
+
+		if err := database.DB.Save(&user).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "cannot update verification datetm"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "user verified successfully"})
+
+	}
+
+	// // Return success message
+	// c.JSON(http.StatusOK, gin.H{"message": token})
+
 }
