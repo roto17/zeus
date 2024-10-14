@@ -21,7 +21,6 @@ import (
 // JWTAuthMiddleware checks for the JWT token in the Authorization header and verifies the role
 func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// requested_language := utils.Coalesce(c.GetHeader("Accept-Language"), "en")
 
 		requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
 
@@ -41,15 +40,6 @@ func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 
 		// Extract the token from the Bearer <token> format
 		tokenString := strings.Replace(authHeader, "Bearer ", "", 1)
-
-		// Find the token in the database
-		var tokenRecord model_token.Token
-
-		if err := database.DB.Where("token = ?", tokenString).First(&tokenRecord).Error; err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("invalid_or_expired_token", "", requested_language)})
-			c.Abort()
-			return
-		}
 
 		// Parse the token
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
@@ -74,8 +64,9 @@ func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 		}
 
 		// Check if the role is allowed
+		userId := claims["user_id"].(string)
 		userRole := claims["role"].(string)
-		userIsVerified := claims["verified"].(bool)
+		// userIsVerified := claims["verified"].(bool)
 		exp, ok := claims["exp"].(float64)
 
 		if !ok {
@@ -90,9 +81,9 @@ func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 		// Convert Unix timestamp back to time.Time for better handling
 		expiration := time.Unix(expirationTime, 0)
 
-		fmt.Printf("------------------\n")
-		fmt.Printf("%v", expiration)
-		fmt.Printf("------------------\n")
+		// fmt.Printf("------------------\n")
+		// fmt.Printf("%v", expiration)
+		// fmt.Printf("------------------\n")
 
 		// Check if the token has expired
 		if time.Now().After(expiration) {
@@ -101,17 +92,30 @@ func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 			return
 		}
 
-		if !userIsVerified {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "can't login using this method"})
+		// if !userIsVerified {
+		// 	c.JSON(http.StatusUnauthorized, gin.H{"error": "can't login using this method"})
+		// 	c.Abort()
+		// 	return
+		// }
+
+		// Find the token in the database
+		var tokenRecord model_token.Token
+
+		if err := database.DB.Where("token = ? and user_id = ?", tokenString, userId).Preload("User").First(&tokenRecord).Error; err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("invalid_or_expired_token", "", requested_language)})
 			c.Abort()
 			return
 		}
 
-		if !userIsVerified {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "can't login using this method"})
+		if tokenRecord.User.VerifiedAt.IsZero() {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Verify your account"})
 			c.Abort()
 			return
 		}
+
+		// fmt.Printf("------------------\n")
+		// fmt.Printf("%s", tokenRecord.User.Email)
+		// fmt.Printf("------------------\n")
 
 		for _, allowedRole := range allowedRoles {
 			if userRole == allowedRole {
