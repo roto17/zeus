@@ -77,13 +77,8 @@ func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 
 		// Convert exp from float64 to int64 for Unix timestamp
 		expirationTime := int64(exp)
-
 		// Convert Unix timestamp back to time.Time for better handling
 		expiration := time.Unix(expirationTime, 0)
-
-		// fmt.Printf("------------------\n")
-		// fmt.Printf("%v", expiration)
-		// fmt.Printf("------------------\n")
 
 		// Check if the token has expired
 		if time.Now().After(expiration) {
@@ -92,13 +87,6 @@ func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 			return
 		}
 
-		// if !userIsVerified {
-		// 	c.JSON(http.StatusUnauthorized, gin.H{"error": "can't login using this method"})
-		// 	c.Abort()
-		// 	return
-		// }
-
-		// Find the token in the database
 		var tokenRecord model_token.Token
 
 		if err := database.DB.Where("token = ? and user_id = ?", tokenString, userId).Preload("User").First(&tokenRecord).Error; err != nil {
@@ -112,10 +100,6 @@ func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-
-		// fmt.Printf("------------------\n")
-		// fmt.Printf("%s", tokenRecord.User.Email)
-		// fmt.Printf("------------------\n")
 
 		for _, allowedRole := range allowedRoles {
 			if userRole == allowedRole {
