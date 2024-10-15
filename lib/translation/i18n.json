@@ -21,7 +21,15 @@
     "token_invalidation_failed": "Could not invalidate token",
     "logout_successful": "Logged out successfully",
     "registration_successful": "Registration successful",
-    "oneof": "{Field} must be one of: {Values}" 
+    "oneof": "{Field} must be one of: {Values}",
+    "token_expired": "Your token has expired",
+    "verify_account": "Please verify your account.",
+    "signature_required": "A signature is required.",
+    "update_verification_date_failed": "Cannot update verification date.",
+    "acct_already_verified": "Account is already verified.",
+    "user_verified_successfully": "User verified successfully.",
+    "failed_to_send_verification_email": "Failed to send verification email.",
+    "registration_completed": "Registration completed. Please verify your email address."
   },
   "fr": {
     "required": "{Field} est requis",
@@ -34,7 +42,7 @@
     "invalid_token_claims": "Réclamations de jetons invalides",
     "permission_denied": "Vous n'avez pas la permission d'accéder à cette ressource",
     "invalid_id": "ID invalide",
-    "not_found": "Ressource introuvable",
+    "not_found": "Ressource non trouvée",
     "invalid_input": "Entrée invalide",
     "unauthorized": "Non autorisé",
     "token_generation_failed": "Impossible de générer le jeton",
@@ -45,6 +53,14 @@
     "token_invalidation_failed": "Impossible d'invalider le jeton",
     "logout_successful": "Déconnexion réussie",
     "registration_successful": "Inscription réussie",
-    "oneof": "{Field} doit être l'un des suivants : {Values}"
+    "oneof": "{Field} doit être l'un des suivants : {Values}",
+    "token_expired": "Votre jeton a expiré",
+    "verify_account": "Veuillez vérifier votre compte.",
+    "signature_required": "Une signature est requise.",
+    "update_verification_date_failed": "Impossible de mettre à jour la date de vérification.",
+    "acct_already_verified": "Le compte est déjà vérifié.",
+    "user_verified_successfully": "Utilisateur vérifié avec succès.",
+    "failed_to_send_verification_email": "Échec de l'envoi de l'email de vérification.",
+    "registration_completed": "Inscription terminée. Veuillez vérifier votre adresse e-mail."
   }
 }

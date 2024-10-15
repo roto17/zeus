@@ -1,7 +1,6 @@
 package router
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -15,8 +14,6 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 )
-
-// var secretKey = []byte("your_secret_key")
 
 // JWTAuthMiddleware checks for the JWT token in the Authorization header and verifies the role
 func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
@@ -63,26 +60,14 @@ func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 			return
 		}
 
-		// Check if the role is allowed
 		userId := claims["user_id"].(string)
 		userRole := claims["role"].(string)
-		// userIsVerified := claims["verified"].(bool)
-		exp, ok := claims["exp"].(float64)
-
-		if !ok {
-			// Handle the case where "exp" claim is missing or not a float64 (Unix timestamp)
-			fmt.Println("Token has no expiration time or invalid format")
-			return
-		}
-
-		// Convert exp from float64 to int64 for Unix timestamp
-		expirationTime := int64(exp)
 		// Convert Unix timestamp back to time.Time for better handling
-		expiration := time.Unix(expirationTime, 0)
+		expiration := time.Unix(int64(claims["exp"].(float64)), 0)
 
 		// Check if the token has expired
 		if time.Now().After(expiration) {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Login Again"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("token_expired", "", requested_language)})
 			c.Abort()
 			return
 		}
@@ -90,17 +75,19 @@ func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 		var tokenRecord model_token.Token
 
 		if err := database.DB.Where("token = ? and user_id = ?", tokenString, userId).Preload("User").First(&tokenRecord).Error; err != nil {
+
 			c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("invalid_or_expired_token", "", requested_language)})
 			c.Abort()
 			return
 		}
 
 		if tokenRecord.User.VerifiedAt.IsZero() {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Verify your account"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("verify_account", "", requested_language)})
 			c.Abort()
 			return
 		}
 
+		// Check if the role is allowed
 		for _, allowedRole := range allowedRoles {
 			if userRole == allowedRole {
 				c.Next() // Proceed to the next handler
