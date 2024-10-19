@@ -32,7 +32,7 @@ func InitRouter() *gin.Engine {
 	api := router.Group("/api")
 	// Define routes within the /api prefix
 	api.POST("/register", actions.Register)
-	api.POST("/login", actions.Login)
+	api.POST("/login", RateLimitMiddleware(), actions.Login)
 	api.POST("/logout", actions.Logout)
 	api.POST("/logout-all", actions.LogoutAll)
 

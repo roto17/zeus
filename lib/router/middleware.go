@@ -2,18 +2,25 @@ package router
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/roto17/zeus/lib/config"
 	"github.com/roto17/zeus/lib/database"
 	model_token "github.com/roto17/zeus/lib/models/tokens"
 	"github.com/roto17/zeus/lib/translation"
 	"github.com/roto17/zeus/lib/utils"
+	"golang.org/x/time/rate"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 )
+
+var visitors = make(map[string]*rate.Limiter)
+var mu sync.Mutex
 
 // JWTAuthMiddleware checks for the JWT token in the Authorization header and verifies the role
 func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
@@ -104,6 +111,57 @@ func SetHeaderVariableMiddleware() gin.HandlerFunc {
 		// Set a variable in the context
 		c.Set("requested_language", utils.Coalesce(c.GetHeader("Accept-Language"), "en"))
 		// Continue to the next handler
+		c.Next()
+	}
+}
+
+// rateLimiter returns a rate limiter for the given IP address.
+func rateLimiter(ip string) *rate.Limiter {
+	mu.Lock()
+	defer mu.Unlock()
+
+	limiter, exists := visitors[ip]
+	if !exists {
+		// Allow 5 requests per minute
+		limiter = rate.NewLimiter(5, 1)
+		visitors[ip] = limiter
+
+		// Automatically delete the entry after 1 minute
+		go func() {
+			time.Sleep(time.Minute)
+			mu.Lock()
+			delete(visitors, ip)
+			mu.Unlock()
+		}()
+	}
+
+	return limiter
+}
+
+// RateLimitMiddleware is a middleware for rate limiting requests.
+func RateLimitMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ip := c.ClientIP()
+
+		// Normalize IPv6 loopback to IPv4 loopback
+		if ip == "::1" {
+			ip = "127.0.0.1"
+		}
+
+		limiter := rateLimiter(ip)
+
+		// Log every request and IP to see if it's being limited
+		log.Printf("Request from IP: %s", ip)
+
+		if !limiter.Allow() {
+			log.Println("Too many requests!")
+			c.JSON(http.StatusTooManyRequests, gin.H{
+				"error": "Too many requests. Please try again later.",
+			})
+			c.Abort()
+			return
+		}
+
 		c.Next()
 	}
 }

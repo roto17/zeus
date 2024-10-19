@@ -18,107 +18,6 @@ import (
 	"gopkg.in/gomail.v2"
 )
 
-func CreateUser(user *model_user.User) error {
-	result := database.DB.Create(&user)
-	return result.Error
-}
-
-func GetUser(id int) (model_user.User, error) {
-	var user model_user.User
-	result := database.DB.First(&user, id)
-	return user, result.Error
-}
-
-func UpdateUser(user *model_user.User) error {
-	result := database.DB.Save(&user)
-	return result.Error
-}
-
-func DeleteUser(id int) error {
-	result := database.DB.Delete(&model_user.User{}, id)
-	return result.Error
-}
-
-// ViewUser handler
-func ViewUser(c *gin.Context) {
-	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
-
-	// Get the user ID from URL param
-	idParam := c.Param("id")
-	id, err := strconv.Atoi(idParam)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("invalid_id", "", requested_language)})
-		return
-	}
-
-	// Use the GetUser function to fetch the user by ID
-	user, err := GetUser(id)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
-		return
-	}
-
-	// Return the user
-	c.JSON(http.StatusOK, user)
-}
-
-// Login handles login and JWT generation
-func Login(c *gin.Context) {
-
-	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
-
-	var loginData model_user.LoginUserInput
-
-	if err := c.ShouldBindJSON(&loginData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("invalid_input", "", requested_language)})
-		return
-	}
-
-	// Validate and get translated error messages
-	validationErrors := utils.FieldValidationAll(loginData, requested_language)
-	if validationErrors != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": validationErrors})
-		return
-	}
-
-	// Find the user by username
-	var user model_user.User
-	if err := database.DB.Where("username = ?", loginData.Username).First(&user).Error; err != nil || !utils.CheckPasswordHash(loginData.Password, user.Password) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("password_username_wrong", "", requested_language)})
-		return
-	}
-
-	// Check if the password matches
-	if user.VerifiedAt.IsZero() {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("verify_account", "", requested_language)})
-		return
-	}
-
-	// Generate JWT token
-	token, err := utils.GenerateToken(user)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("token_generation_failed", "", requested_language)})
-		return
-	}
-
-	// Save the token and expiration in the database
-	newToken := model_token.Token{
-		Token:  token,
-		UserID: user.ID,
-		User:   user,
-	}
-
-	if err := database.DB.Create(&newToken).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("token_save_failed", "", requested_language)})
-		return
-	}
-
-	// Return the token to the client
-	c.JSON(http.StatusOK, gin.H{
-		"token": token,
-	})
-}
-
 // Register handles registration
 func Register(c *gin.Context) {
 
@@ -187,6 +86,63 @@ func Register(c *gin.Context) {
 	// Return success message
 	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("registration_completed", "", requested_language)})
 
+}
+
+// Login handles login and JWT generation
+func Login(c *gin.Context) {
+
+	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
+
+	var loginData model_user.LoginUserInput
+
+	if err := c.ShouldBindJSON(&loginData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("invalid_input", "", requested_language)})
+		return
+	}
+
+	// Validate and get translated error messages
+	validationErrors := utils.FieldValidationAll(loginData, requested_language)
+	if validationErrors != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": validationErrors})
+		return
+	}
+
+	// Find the user by username
+	var user model_user.User
+	if err := database.DB.Where("username = ?", loginData.Username).First(&user).Error; err != nil || !utils.CheckPasswordHash(loginData.Password, user.Password) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("password_username_wrong", "", requested_language)})
+		return
+	}
+
+	// Check if the password matches
+	if user.VerifiedAt.IsZero() {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("verify_account", "", requested_language)})
+		return
+	}
+
+	// Generate JWT token
+	token, err := utils.GenerateToken(user)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("token_generation_failed", "", requested_language)})
+		return
+	}
+
+	// Save the token and expiration in the database
+	newToken := model_token.Token{
+		Token:  token,
+		UserID: user.ID,
+		User:   user,
+	}
+
+	if err := database.DB.Create(&newToken).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("token_save_failed", "", requested_language)})
+		return
+	}
+
+	// Return the token to the client
+	c.JSON(http.StatusOK, gin.H{
+		"token": token,
+	})
 }
 
 // Logout handles logout by invalidating the JWT token
@@ -270,20 +226,74 @@ func LogoutAll(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("logout_successful", "", requested_language)})
 }
 
+// ViewUser handler
+func ViewUser(c *gin.Context) {
+	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
+
+	// Get the user ID from URL param
+	idParam := c.Param("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("invalid_id", "", requested_language)})
+		return
+	}
+
+	// Use the GetUser function to fetch the user by ID
+	user, err := GetUser(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
+		return
+	}
+
+	// Return the user
+	c.JSON(http.StatusOK, user)
+}
+
+// func CreateUser(user *model_user.User) error {
+// 	result := database.DB.Create(&user)
+// 	return result.Error
+// }
+
+func GetUser(id int) (model_user.User, error) {
+	var user model_user.User
+	result := database.DB.First(&user, id)
+	return user, result.Error
+}
+
+// func UpdateUser(user *model_user.User) error {
+// 	result := database.DB.Save(&user)
+// 	return result.Error
+// }
+
+// func DeleteUser(id int) error {
+// 	result := database.DB.Delete(&model_user.User{}, id)
+// 	return result.Error
+// }
+
 func SendVerificationEmail(userEmail, token, appBaseURL, smtpUser, smtpPass, smtpHost string, smtpPort int) error {
 	// Create the verification URL
 	verificationURL := fmt.Sprintf("%s/verify-email?signature=%s", appBaseURL, token)
 
 	// Email content
 	subject := "Email Verification"
-	body := fmt.Sprintf("Please click the following link to verify your email: %s", verificationURL)
+	// body := fmt.Sprintf("Please click the following link to verify your email: %s", verificationURL)
+
+	// HTML version of the email body
+	htmlBody := fmt.Sprintf(`
+		<html>
+			<body>
+				<p>Please click the following link to verify your email:</p>
+				<a href="%s">Verify Email</a>
+			</body>
+		</html>`, verificationURL)
 
 	// Set up the email message
 	message := gomail.NewMessage()
 	message.SetHeader("From", smtpUser)
 	message.SetHeader("To", userEmail)
 	message.SetHeader("Subject", subject)
-	message.SetBody("text/plain", body)
+	message.SetBody("text/html", htmlBody) // plain text
+	// message.AddAlternative("text/html", htmlBody) // HTML version
 
 	// Set up the SMTP dialer
 	dialer := gomail.NewDialer(smtpHost, smtpPort, smtpUser, smtpPass)
