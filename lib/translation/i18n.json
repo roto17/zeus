@@ -29,7 +29,9 @@
     "acct_already_verified": "Account is already verified.",
     "user_verified_successfully": "User verified successfully.",
     "failed_to_send_verification_email": "Failed to send verification email.",
-    "registration_completed": "Registration completed. Please verify your email address."
+    "registration_completed": "Registration completed. Please verify your email address.",
+    "password_username_wrong":"The username or password you entered is invalid.",
+    "cannot_logout":"Unable to log out. Please try again."
   },
   "fr": {
     "required": "{Field} est requis",
@@ -61,6 +63,8 @@
     "acct_already_verified": "Le compte est déjà vérifié.",
     "user_verified_successfully": "Utilisateur vérifié avec succès.",
     "failed_to_send_verification_email": "Échec de l'envoi de l'email de vérification.",
-    "registration_completed": "Inscription terminée. Veuillez vérifier votre adresse e-mail."
+    "registration_completed": "Inscription terminée. Veuillez vérifier votre adresse e-mail.",
+    "password_username_wrong":"Le nom d'utilisateur ou le mot de passe que vous avez saisi est invalide.",
+    "cannot_logout":"Impossible de se déconnecter. Veuillez réessayer."
   }
 }

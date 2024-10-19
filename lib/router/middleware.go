@@ -1,9 +1,9 @@
 package router
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/roto17/zeus/lib/config"
 	"github.com/roto17/zeus/lib/database"
@@ -47,7 +47,14 @@ func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 		})
 
 		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("invalid_token", "", requested_language)})
+
+			result := database.DB.Where("token = ?", tokenString).Delete(&model_token.Token{})
+
+			if result.RowsAffected == 0 || result.Error != nil {
+				fmt.Printf("failed to delete token: %s", result.Error)
+			}
+
+			c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("invalid_or_expired_token", "", requested_language)})
 			c.Abort()
 			return
 		}
@@ -62,20 +69,10 @@ func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 
 		userId := claims["user_id"].(string)
 		userRole := claims["role"].(string)
-		// Convert Unix timestamp back to time.Time for better handling
-		expiration := time.Unix(int64(claims["exp"].(float64)), 0)
-
-		// Check if the token has expired
-		if time.Now().After(expiration) {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("token_expired", "", requested_language)})
-			c.Abort()
-			return
-		}
 
 		var tokenRecord model_token.Token
 
 		if err := database.DB.Where("token = ? and user_id = ?", tokenString, userId).Preload("User").First(&tokenRecord).Error; err != nil {
-
 			c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("invalid_or_expired_token", "", requested_language)})
 			c.Abort()
 			return
