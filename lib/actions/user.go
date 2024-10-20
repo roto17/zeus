@@ -127,11 +127,15 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	ip_addr := utils.Coalesce(c.GetHeader("X-Forwarded-For"), c.ClientIP())
+
 	// Save the token and expiration in the database
 	newToken := model_token.Token{
-		Token:  token,
-		UserID: user.ID,
-		User:   user,
+		Token:      token,
+		UserID:     user.ID,
+		User:       user,
+		IPAddress:  ip_addr,
+		DeviceName: utils.DeviceNameString(c.GetHeader("User-Agent")),
 	}
 
 	if err := database.DB.Create(&newToken).Error; err != nil {

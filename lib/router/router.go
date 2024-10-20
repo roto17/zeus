@@ -20,9 +20,10 @@ func InitRouter() *gin.Engine {
 	router.Use(SetHeaderVariableMiddleware())
 
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"}, // Add allowed origins here
+		// AllowOrigins:     []string{"http://localhost:3000"}, // Add allowed origins here
+		AllowOrigins:     []string{"*"}, // Add allowed origins here
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "X-Forwarded-For"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
