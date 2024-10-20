@@ -7,6 +7,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/roto17/zeus/lib/actions"
+	"github.com/roto17/zeus/lib/notifications"
 	"github.com/roto17/zeus/lib/translation"
 	"github.com/roto17/zeus/lib/utils"
 )
@@ -39,6 +40,8 @@ func InitRouter() *gin.Engine {
 	api.POST("/login", RateLimitMiddleware(), actions.Login)
 	api.POST("/logout", actions.Logout)
 	api.POST("/logout-all", actions.LogoutAll)
+
+	api.GET("/notifications", notifications.WebSocketHandler) // WebSocket route
 
 	// Route for viewing a user by ID (Admin access only)
 	api.GET("/view_user/:id", JWTAuthMiddleware("admin"), actions.ViewUser)

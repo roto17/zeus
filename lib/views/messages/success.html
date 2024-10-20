@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Error</title>
+    <title>Message</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -27,7 +27,7 @@
             box-sizing: border-box; /* Include padding in width/height calculations */
         }
         h1 {
-            color: #FF4C4C; /* Red color for errors */
+            color: #4CAF50; /* Green color */
             margin-bottom: 10px; /* Space below heading */
         }
         p {
@@ -35,11 +35,23 @@
             line-height: 1.5;
             color: #333;
         }
-        .error-message {
-            padding: 15px; /* Padding for error message */
-            background-color: #f8d7da; /* Light red background */
-            border-left: 6px solid #dc3545; /* Dark red left border */
+        .success-message {
+            padding: 15px; /* Padding for success message */
+            background-color: #e7f3fe; /* Light blue background */
+            border-left: 6px solid #2196F3; /* Blue left border */
             margin-top: 20px;
+        }
+        .login-link {
+            margin-top: 20px;
+            font-size: 16px;
+        }
+        .login-link a {
+            color: #2196F3; /* Blue color for the link */
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .login-link a:hover {
+            text-decoration: underline; /* Underline on hover */
         }
         @media (max-width: 600px) {
             .container {
@@ -50,9 +62,12 @@
 </head>
 <body>
     <div class="container">
-        <h1>Error</h1>
-        <div class="error-message">
-            <p>{{ .error }}</p>
+        <h1>Success</h1>
+        <div class="success-message">
+            <p>{{ .message }}</p>
+        </div>
+        <div class="login-link">
+            <p>Return to <a href="/login">Login</a></p>
         </div>
     </div>
 </body>

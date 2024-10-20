@@ -39,7 +39,7 @@ func ValidateStruct(model interface{}, language string) []model_validation.Valid
 				allowedValues := getOneOfTagValue(model, fieldErr.StructField())
 
 				// Replace the {Values} placeholder in the error message
-				message = strings.Replace(message, "{Values}", allowedValues, 1)
+				message = strings.Replace(message, "{values}", allowedValues, 1)
 			}
 			fmt.Printf("%s", fieldErr.StructField())
 

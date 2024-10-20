@@ -13,6 +13,7 @@ import (
 	"github.com/roto17/zeus/lib/database"
 	model_token "github.com/roto17/zeus/lib/models/tokens"
 	model_user "github.com/roto17/zeus/lib/models/users"
+	"github.com/roto17/zeus/lib/notifications"
 	"github.com/roto17/zeus/lib/translation" // Assuming translation package handles translations
 	"github.com/roto17/zeus/lib/utils"
 	"gopkg.in/gomail.v2"
@@ -84,6 +85,7 @@ func Register(c *gin.Context) {
 		return
 	}
 	// Return success message
+	notifications.SendNotification("A new user has been added: " + user.Username)
 	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("registration_completed", "", requested_language)})
 
 }
@@ -414,7 +416,7 @@ func VerifyByMail(c *gin.Context) {
 	}
 
 	if !user.VerifiedAt.IsZero() {
-		c.HTML(http.StatusOK, "message.html", gin.H{"message": translation.GetTranslation("acct_already_verified", "", requestedLanguage)})
+		c.HTML(http.StatusOK, "success.html", gin.H{"message": translation.GetTranslation("acct_already_verified", "", requestedLanguage)})
 		return
 	}
 
@@ -426,5 +428,5 @@ func VerifyByMail(c *gin.Context) {
 		return
 	}
 
-	c.HTML(http.StatusOK, "message.html", gin.H{"message": translation.GetTranslation("user_verified_successfully", "", requestedLanguage)})
+	c.HTML(http.StatusOK, "success.html", gin.H{"message": translation.GetTranslation("user_verified_successfully", "", requestedLanguage)})
 }

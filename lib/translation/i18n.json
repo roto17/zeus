@@ -22,7 +22,11 @@
     "signature_required": "A signature is required.",
     "acct_already_verified": "Account is already verified.",
     "update_verification_date_failed": "Cannot update verification date.",
-    "user_verified_successfully": "User verified successfully."
+    "user_verified_successfully": "User verified successfully.",
+    "required": "This field is required.",
+    "oneof": "Please select one of the list : {values}.",
+    "unique": "This value must be unique."
+    
   },
   "fr": {
     "required_header": "L'en-tête d'autorisation est requis",
@@ -47,6 +51,9 @@
     "signature_required": "Une signature est requise.",
     "acct_already_verified": "Le compte est déjà vérifié.",
     "update_verification_date_failed": "Impossible de mettre à jour la date de vérification.",
-    "user_verified_successfully": "Utilisateur vérifié avec succès."
+    "user_verified_successfully": "Utilisateur vérifié avec succès.",
+    "required": "Ce champ est requis.",
+    "oneof": "Veuillez sélectionner l'une des : {values}.",
+    "unique": "Cette valeur doit être unique."
   }
 }
