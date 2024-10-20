@@ -27,7 +27,7 @@ func GenerateToken(user model_user.User) (string, error) {
 		"username": user.Username,
 		"role":     user.Role,
 		"exp":      expirationTime.Unix(),
-		"verified": !user.VerifiedAt.IsZero(),
+		// "verified": !user.VerifiedAt.IsZero(),
 	}
 
 	// fmt.Printf("-------------------------\n")
