@@ -16,6 +16,9 @@ import (
 func InitRouter() *gin.Engine {
 	router := gin.Default()
 
+	router.LoadHTMLGlob("lib/views/*/*") // Load error templates
+	// router.LoadHTMLGlob("lib/views/messages/*") // Load message templates
+
 	// Apply the middleware globally
 	router.Use(SetHeaderVariableMiddleware())
 

@@ -64,3 +64,7 @@
 [2024-10-20T17:43:32+01:00] Info: User: roto, Message: Token migration successful!, file: D:/Golang/zeus/lib/migrations/token_migration.go => line: 17
 [2024-10-20T17:44:47+01:00] Fatal: User: roto, Message: I18n.json file loaded successefuly, file: D:/Golang/zeus/lib/config/config.go => line: 38
 [2024-10-20T17:44:47+01:00] Info: User: roto, Message: Database connection established!, file: D:/Golang/zeus/lib/database/database.go => line: 33
+[2024-10-20T17:55:13+01:00] Fatal: User: roto, Message: I18n.json file loaded successefuly, file: D:/Golang/zeus/lib/config/config.go => line: 38
+[2024-10-20T17:55:13+01:00] Info: User: roto, Message: Database connection established!, file: D:/Golang/zeus/lib/database/database.go => line: 33
+[2024-10-20T17:56:00+01:00] Fatal: User: roto, Message: I18n.json file loaded successefuly, file: D:/Golang/zeus/lib/config/config.go => line: 38
+[2024-10-20T17:56:00+01:00] Info: User: roto, Message: Database connection established!, file: D:/Golang/zeus/lib/database/database.go => line: 33

@@ -309,13 +309,74 @@ func SendVerificationEmail(userEmail, token, appBaseURL, smtpUser, smtpPass, smt
 	return nil
 }
 
-// Register handles registration
+// // Register handles registration
+// func VerifyByMail(c *gin.Context) {
+// 	tokenString := c.Query("signature")
+// 	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
+
+// 	if tokenString == "" {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("signature_required", "", requested_language)})
+// 		return
+// 	}
+
+// 	// Parse the token
+// 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+// 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+// 			return nil, http.ErrAbortHandler
+// 		}
+// 		return []byte(config.GetEnv("secretkey")), nil
+// 	})
+
+// 	if err != nil || !token.Valid {
+// 		c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("invalid_or_expired_token", "", requested_language)})
+// 		c.Abort()
+// 		return
+// 	}
+
+// 	// Extract the claims
+// 	claims, ok := token.Claims.(jwt.MapClaims)
+// 	if !ok {
+// 		c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("invalid_token_claims", "", requested_language)})
+// 		c.Abort()
+// 		return
+// 	}
+
+// 	user_id := utils.StringToInt(claims["user_id"].(string))
+
+// 	var user model_user.User
+// 	result := database.DB.First(&user, user_id)
+
+// 	if result.Error != nil {
+// 		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
+// 		c.Abort()
+// 		return
+// 	}
+
+// 	if !user.VerifiedAt.IsZero() {
+// 		c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("acct_already_verified", "", requested_language)})
+// 		return
+
+// 	}
+
+// 	user.VerifiedAt = time.Now()
+
+// 	if err := database.DB.Save(&user).Error; err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("update_verification_date_failed", "", requested_language)})
+// 		c.Abort()
+// 		return
+// 	}
+
+// 	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("user_verified_successfully", "", requested_language)})
+
+// }
+
+// VerifyByMail handles email verification
 func VerifyByMail(c *gin.Context) {
 	tokenString := c.Query("signature")
-	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
+	requestedLanguage := utils.GetHeaderVarToString(c.Get("requested_language"))
 
 	if tokenString == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("signature_required", "", requested_language)})
+		c.HTML(http.StatusBadRequest, "error.html", gin.H{"error": translation.GetTranslation("signature_required", "", requestedLanguage)})
 		return
 	}
 
@@ -328,7 +389,7 @@ func VerifyByMail(c *gin.Context) {
 	})
 
 	if err != nil || !token.Valid {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("invalid_or_expired_token", "", requested_language)})
+		c.HTML(http.StatusUnauthorized, "error.html", gin.H{"error": translation.GetTranslation("invalid_or_expired_token", "", requestedLanguage)})
 		c.Abort()
 		return
 	}
@@ -336,36 +397,34 @@ func VerifyByMail(c *gin.Context) {
 	// Extract the claims
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("invalid_token_claims", "", requested_language)})
+		c.HTML(http.StatusUnauthorized, "error.html", gin.H{"error": translation.GetTranslation("invalid_token_claims", "", requestedLanguage)})
 		c.Abort()
 		return
 	}
 
-	user_id := utils.StringToInt(claims["user_id"].(string))
+	userID := utils.StringToInt(claims["user_id"].(string))
 
 	var user model_user.User
-	result := database.DB.First(&user, user_id)
+	result := database.DB.First(&user, userID)
 
 	if result.Error != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
+		c.HTML(http.StatusNotFound, "error.html", gin.H{"error": translation.GetTranslation("not_found", "", requestedLanguage)})
 		c.Abort()
 		return
 	}
 
 	if !user.VerifiedAt.IsZero() {
-		c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("acct_already_verified", "", requested_language)})
+		c.HTML(http.StatusOK, "message.html", gin.H{"message": translation.GetTranslation("acct_already_verified", "", requestedLanguage)})
 		return
-
 	}
 
 	user.VerifiedAt = time.Now()
 
 	if err := database.DB.Save(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("update_verification_date_failed", "", requested_language)})
+		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"error": translation.GetTranslation("update_verification_date_failed", "", requestedLanguage)})
 		c.Abort()
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("user_verified_successfully", "", requested_language)})
-
+	c.HTML(http.StatusOK, "message.html", gin.H{"message": translation.GetTranslation("user_verified_successfully", "", requestedLanguage)})
 }
