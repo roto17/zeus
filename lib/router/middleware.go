@@ -2,7 +2,6 @@ package router
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"sync"
@@ -116,14 +115,14 @@ func SetHeaderVariableMiddleware() gin.HandlerFunc {
 }
 
 // rateLimiter returns a rate limiter for the given IP address.
-func rateLimiter(ip string) *rate.Limiter {
+func setLimiter(ip string) *rate.Limiter {
 	mu.Lock()
 	defer mu.Unlock()
 
 	limiter, exists := visitors[ip]
 	if !exists {
 		// Allow 5 requests per minute
-		limiter = rate.NewLimiter(5, 1)
+		limiter = rate.NewLimiter(rate.Every(time.Minute/4), 4)
 		visitors[ip] = limiter
 
 		// Automatically delete the entry after 1 minute
@@ -141,22 +140,14 @@ func rateLimiter(ip string) *rate.Limiter {
 // RateLimitMiddleware is a middleware for rate limiting requests.
 func RateLimitMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
 		ip := c.ClientIP()
 
-		// Normalize IPv6 loopback to IPv4 loopback
-		if ip == "::1" {
-			ip = "127.0.0.1"
-		}
-
-		limiter := rateLimiter(ip)
-
-		// Log every request and IP to see if it's being limited
-		log.Printf("Request from IP: %s", ip)
+		limiter := setLimiter(ip)
 
 		if !limiter.Allow() {
-			log.Println("Too many requests!")
 			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error": "Too many requests. Please try again later.",
+				"error": translation.GetTranslation("too_many_request", "", requested_language),
 			})
 			c.Abort()
 			return
