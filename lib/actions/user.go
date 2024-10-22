@@ -85,7 +85,13 @@ func Register(c *gin.Context) {
 		return
 	}
 	// Return success message
-	notifications.SendNotification("A new user has been added: " + user.Username)
+	// notifications.SendNotification("A new user has been added: " + user.Username)
+
+	// After successfully registering a user
+	fromRole := "user"
+	toRole := "user"                                               // Define the user's role
+	notifications.RegisterUser(fromRole, toRole, "added success!") // Call the RegisterUser function to send a notification
+
 	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("registration_completed", "", requested_language)})
 
 }

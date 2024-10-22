@@ -1,39 +1,127 @@
 package notifications
 
 import (
+	// "src/lib/utils" // Adjusted import path
+	"fmt"
+	"net/http"
 	"sync"
 
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/roto17/zeus/lib/utils"
 )
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		// Allow connections from localhost and your frontend's origin
+		return r.Header.Get("Origin") == "http://localhost:3000" || r.Header.Get("Origin") == "http://your-frontend-origin.com"
+	},
+}
 
 var (
-	clients   = make(map[*websocket.Conn]bool) // Connected clients
-	clientsMu sync.Mutex                       // Mutex for concurrent access
+	clients    = make(map[*websocket.Conn]string) // Use string to store role
+	broadcast  = make(chan Notification)
+	clientLock = sync.Mutex{}
+	workerPool = make(chan Notification, 100) // Channel for worker pool
 )
 
+// Notification represents the notification message
+type Notification struct {
+	Content string `json:"content"`
+	From    string `json:"from"` // Sender's role
+	To      string `json:"to"`   // Recipient's role
+}
+
 // AddClient adds a new WebSocket client
-func AddClient(conn *websocket.Conn) {
-	clientsMu.Lock()
-	clients[conn] = true
-	clientsMu.Unlock()
+func AddClient(conn *websocket.Conn, role string) {
+	clientLock.Lock()
+	clients[conn] = role
+	clientLock.Unlock()
 }
 
 // RemoveClient removes a WebSocket client
 func RemoveClient(conn *websocket.Conn) {
-	clientsMu.Lock()
+	clientLock.Lock()
 	delete(clients, conn)
-	clientsMu.Unlock()
+	clientLock.Unlock()
 }
 
-// SendNotification sends a notification to all connected clients
-func SendNotification(message string) {
-	clientsMu.Lock()
-	for client := range clients {
-		err := client.WriteJSON(message)
+// HandleMessages processes notifications in the worker pool
+func HandleMessages() {
+	for {
+
+		notification := <-broadcast
+		workerPool <- notification // Send to worker pool
+	}
+}
+
+// Worker function to process notifications
+func worker() {
+	for notification := range workerPool {
+		clientLock.Lock()
+		for client, role := range clients {
+			fmt.Printf("----------worker-----------\n")
+			if role == notification.To { // Send only to designated recipients
+				err := client.WriteJSON(notification)
+				if err != nil {
+					client.Close()
+					delete(clients, client)
+				}
+			}
+		}
+		clientLock.Unlock()
+	}
+}
+
+// StartWorkers starts a set number of worker goroutines
+func StartWorkers(numWorkers int) {
+	for i := 0; i < numWorkers; i++ {
+		go worker() // Start each worker
+	}
+}
+
+// RegisterUser handles user registration and sends notifications
+func RegisterUser(from_role string, to_role string, msg string) {
+	// Create a notification to inform admins about the new registration
+	notification := Notification{
+		From:    from_role,
+		To:      to_role, // Indicating that the message is for admins
+		Content: msg,
+	}
+	broadcast <- notification // Send the notification
+}
+
+// WSHandler handles WebSocket connections
+func WSHandler(c *gin.Context) {
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		fmt.Printf("Error upgrading connection: %v\n", err)
+		return
+	}
+	defer conn.Close()
+
+	tokenString := c.Query("token")
+	role := utils.GetRoleFromToken(tokenString)
+
+	fmt.Printf("----------------------------\n")
+	fmt.Printf("%s", role)
+	fmt.Printf("----------------------------\n")
+
+	if role == "" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Invalid token"})
+		return
+	}
+
+	AddClient(conn, role)
+
+	for {
+		var msg Notification
+		err := conn.ReadJSON(&msg)
 		if err != nil {
-			client.Close() // Close the connection on error
-			delete(clients, client)
+			RemoveClient(conn)
+			break
 		}
 	}
-	clientsMu.Unlock()
 }

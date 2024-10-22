@@ -65,3 +65,20 @@ func CheckPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
 }
+
+// GetRoleFromToken extracts the role from a JWT token in the Authorization header.
+func GetRoleFromToken(tokenString string) string {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return []byte(config.GetEnv("secretkey")), nil
+	})
+	if err != nil || !token.Valid {
+		return ""
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok {
+		if role, exists := claims["role"]; exists {
+			return role.(string)
+		}
+	}
+	return ""
+}

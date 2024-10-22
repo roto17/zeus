@@ -1,11 +1,17 @@
 package main
 
 import (
+	"github.com/gorilla/websocket"
 	"github.com/roto17/zeus/lib/router"
 
 	"github.com/roto17/zeus/lib/config"
 	"github.com/roto17/zeus/lib/database"
 )
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
 
 func main() {
 

@@ -17,15 +17,16 @@ import (
 func InitRouter() *gin.Engine {
 	router := gin.Default()
 
-	router.LoadHTMLGlob("lib/views/*/*") // Load error templates
-	// router.LoadHTMLGlob("lib/views/messages/*") // Load message templates
+	// Start worker goroutines for handling notifications
+	notifications.StartWorkers(5)
 
-	// Apply the middleware globally
+	// Load HTML templates for error pages
+	router.LoadHTMLGlob("lib/views/*/*")
+
+	// Apply middleware
 	router.Use(SetHeaderVariableMiddleware())
-
 	router.Use(cors.New(cors.Config{
-		// AllowOrigins:     []string{"http://localhost:3000"}, // Add allowed origins here
-		AllowOrigins:     []string{"*"}, // Add allowed origins here
+		AllowOrigins:     []string{"*"}, // Adjust to your needs
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "X-Forwarded-For"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -35,24 +36,31 @@ func InitRouter() *gin.Engine {
 
 	// Group routes under the /api prefix
 	api := router.Group("/api")
-	// Define routes within the /api prefix
-	api.POST("/register", actions.Register)
-	api.POST("/login", RateLimitMiddleware(), actions.Login)
-	api.POST("/logout", actions.Logout)
-	api.POST("/logout-all", actions.LogoutAll)
+	{
+		// User-related routes
+		api.POST("/register", actions.Register)
+		api.POST("/login", RateLimitMiddleware(), actions.Login)
+		api.POST("/logout", actions.Logout)
+		api.POST("/logout-all", actions.LogoutAll)
 
-	api.GET("/notifications", notifications.WebSocketHandler) // WebSocket route
+		// WebSocket route for notifications
+		api.GET("/notifications", notifications.WSHandler)
 
-	// Route for viewing a user by ID (Admin access only)
-	api.GET("/view_user/:id", JWTAuthMiddleware("admin"), actions.ViewUser)
-	router.GET("verify-email", actions.VerifyByMail)
+		// Route for viewing a user by ID (Admin access only)
+		api.GET("/view_user/:id", JWTAuthMiddleware("admin"), actions.ViewUser)
+
+		// Other routes
+		router.GET("/verify-email", actions.VerifyByMail)
+	}
 
 	// Handle undefined routes (still under the /api prefix)
 	router.NoRoute(func(c *gin.Context) {
-		requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
-		errorMessage := translation.GetTranslation("not_found", "", requested_language)
+		requestedLanguage := utils.GetHeaderVarToString(c.Get("requested_language"))
+		errorMessage := translation.GetTranslation("not_found", "", requestedLanguage)
 		c.JSON(http.StatusNotFound, gin.H{"error": errorMessage})
 	})
+
+	go notifications.HandleMessages() // Start the notification message handler
 
 	return router
 
