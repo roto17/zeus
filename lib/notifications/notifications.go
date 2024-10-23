@@ -29,9 +29,9 @@ var (
 
 // Notification represents the notification message
 type Notification struct {
-	Content string `json:"content"`
-	From    string `json:"from"` // Sender's role
-	To      string `json:"to"`   // Recipient's role
+	Content string   `json:"content"`
+	From    string   `json:"from"` // Sender's role
+	ToRoles []string `json:"to_roles"`
 }
 
 // AddClient adds a new WebSocket client
@@ -51,19 +51,25 @@ func RemoveClient(conn *websocket.Conn) {
 // HandleMessages processes notifications in the worker pool
 func HandleMessages() {
 	for {
-
 		notification := <-broadcast
 		workerPool <- notification // Send to worker pool
 	}
 }
 
-// Worker function to process notifications
+func contains(roles []string, role string) bool {
+	for _, r := range roles {
+		if r == role {
+			return true
+		}
+	}
+	return false
+}
+
 func worker() {
 	for notification := range workerPool {
 		clientLock.Lock()
 		for client, role := range clients {
-			fmt.Printf("----------worker-----------\n")
-			if role == notification.To { // Send only to designated recipients
+			if contains(notification.ToRoles, role) { // Send to any role in the list
 				err := client.WriteJSON(notification)
 				if err != nil {
 					client.Close()
@@ -83,11 +89,11 @@ func StartWorkers(numWorkers int) {
 }
 
 // RegisterUser handles user registration and sends notifications
-func RegisterUser(from_role string, to_role string, msg string) {
+func Notify(from_role string, to_roles []string, msg string) {
 	// Create a notification to inform admins about the new registration
 	notification := Notification{
 		From:    from_role,
-		To:      to_role, // Indicating that the message is for admins
+		ToRoles: to_roles, // Indicating that the message is for admins
 		Content: msg,
 	}
 	broadcast <- notification // Send the notification
@@ -104,10 +110,6 @@ func WSHandler(c *gin.Context) {
 
 	tokenString := c.Query("token")
 	role := utils.GetRoleFromToken(tokenString)
-
-	fmt.Printf("----------------------------\n")
-	fmt.Printf("%s", role)
-	fmt.Printf("----------------------------\n")
 
 	if role == "" {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Invalid token"})
