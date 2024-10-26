@@ -91,7 +91,7 @@ func Register(c *gin.Context) {
 
 	toRoles := []string{"admin", "manager", "user"}
 
-	notifications.Notify(newUser.Role, toRoles, "added success!") // Call the RegisterUser function to send a notification
+	notifications.Notify(newUser.Username, newUser.Role, strings.Join(toRoles, ","), "added success!") // Call the RegisterUser function to send a notification
 
 	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("registration_completed", "", requested_language)})
 

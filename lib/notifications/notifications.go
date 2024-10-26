@@ -6,11 +6,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/roto17/zeus/lib/database"
+	models "github.com/roto17/zeus/lib/models/notifications"
 	"github.com/roto17/zeus/lib/utils"
 )
 
@@ -32,24 +35,19 @@ var upgrader = websocket.Upgrader{
 // Store for connected clients and channel for broadcasting notifications
 var (
 	clients    sync.Map
-	broadcast  = make(chan Notification)
-	workerPool = make(chan Notification, maxWorkerPoolSize) // Use buffered channel for limited worker pool
+	broadcast  = make(chan models.Notification)
+	workerPool = make(chan models.Notification, maxWorkerPoolSize) // Use buffered channel for limited worker pool
 	jsonPool   = sync.Pool{New: func() interface{} { return new(bytes.Buffer) }}
 )
 
-// Notification represents a notification message structure
-type Notification struct {
-	Content string   `json:"content"`
-	From    string   `json:"from"`     // Sender's role
-	ToRoles []string `json:"to_roles"` // Recipient roles
-}
-
 // NewNotification is a constructor for Notification
-func NewNotification(from string, to []string, content string) Notification {
-	return Notification{
-		From:    from,
-		ToRoles: to,
-		Content: content,
+func NewNotification(username string, from string, to string, msg string) models.Notification {
+	return models.Notification{
+		Username:  username,
+		FromRole:  from,
+		ToRoles:   to,
+		Message:   msg,
+		CreatedAt: time.Now(),
 	}
 }
 
@@ -98,7 +96,7 @@ func worker(ctx context.Context) {
 					return true
 				}
 
-				if contains(notification.ToRoles, role) {
+				if contains(strings.Split(notification.ToRoles, ","), role) {
 					buffer := jsonPool.Get().(*bytes.Buffer)
 					buffer.Reset()
 
@@ -129,8 +127,16 @@ func StartWorkers(numWorkers int, ctx context.Context) {
 }
 
 // Notify creates a notification and sends it to the broadcast channel
-func Notify(fromRole string, toRoles []string, msg string) {
-	notification := NewNotification(fromRole, toRoles, msg)
+func Notify(username string, fromRole string, toRoles string, msg string) {
+	// database.DB.Create()
+	notification := NewNotification(username, fromRole, toRoles, msg)
+
+	// Save the user in the database
+	if err := database.DB.Create(&notification).Error; err != nil {
+		// c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("registration_failed", "", requested_language)})
+		return
+	}
+
 	broadcast <- notification // Send the notification
 }
 
@@ -157,7 +163,7 @@ func WSHandler(c *gin.Context) {
 	// Set read deadline to prevent resource leaks
 	for {
 		conn.SetReadDeadline(time.Now().Add(readDeadline)) // Reset deadline
-		var msg Notification
+		var msg models.Notification
 		if err := conn.ReadJSON(&msg); err != nil {
 			fmt.Printf("Error reading message from client %v: %v\n", conn.RemoteAddr(), err)
 			break
