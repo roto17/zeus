@@ -1,129 +1,181 @@
 package notifications
 
 import (
-	// "src/lib/utils" // Adjusted import path
+	"bytes"
+	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/roto17/zeus/lib/utils"
 )
 
+const (
+	readDeadline      = 60 * time.Second // Constant for read deadline
+	maxWorkerPoolSize = 10               // Limit for worker pool size
+)
+
+// WebSocket upgrader with custom origin check
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		// Allow connections from localhost and your frontend's origin
-		return r.Header.Get("Origin") == "http://localhost:3000" || r.Header.Get("Origin") == "http://your-frontend-origin.com"
+		origin := r.Header.Get("Origin")
+		return origin == "http://localhost:3000" || origin == "http://your-frontend-origin.com"
 	},
 }
 
+// Store for connected clients and channel for broadcasting notifications
 var (
-	clients    = make(map[*websocket.Conn]string) // Use string to store role
+	clients    sync.Map
 	broadcast  = make(chan Notification)
-	clientLock = sync.Mutex{}
-	workerPool = make(chan Notification, 100) // Channel for worker pool
+	workerPool = make(chan Notification, maxWorkerPoolSize) // Use buffered channel for limited worker pool
+	jsonPool   = sync.Pool{New: func() interface{} { return new(bytes.Buffer) }}
 )
 
-// Notification represents the notification message
+// Notification represents a notification message structure
 type Notification struct {
 	Content string   `json:"content"`
-	From    string   `json:"from"` // Sender's role
-	ToRoles []string `json:"to_roles"`
+	From    string   `json:"from"`     // Sender's role
+	ToRoles []string `json:"to_roles"` // Recipient roles
 }
 
-// AddClient adds a new WebSocket client
+// NewNotification is a constructor for Notification
+func NewNotification(from string, to []string, content string) Notification {
+	return Notification{
+		From:    from,
+		ToRoles: to,
+		Content: content,
+	}
+}
+
+// AddClient registers a new WebSocket client
 func AddClient(conn *websocket.Conn, role string) {
-	clientLock.Lock()
-	clients[conn] = role
-	clientLock.Unlock()
+	clients.Store(conn, role)
 }
 
-// RemoveClient removes a WebSocket client
+// RemoveClient unregisters a WebSocket client
 func RemoveClient(conn *websocket.Conn) {
-	clientLock.Lock()
-	delete(clients, conn)
-	clientLock.Unlock()
+	clients.Delete(conn)
 }
 
-// HandleMessages processes notifications in the worker pool
+// HandleMessages listens for incoming notifications and dispatches them to workers
 func HandleMessages() {
-	for {
-		notification := <-broadcast
-		workerPool <- notification // Send to worker pool
+	for notification := range broadcast {
+		workerPool <- notification // Dispatch to worker pool
 	}
 }
 
+// contains checks if a given role exists in the roles slice
 func contains(roles []string, role string) bool {
+	roleMap := make(map[string]struct{}, len(roles))
 	for _, r := range roles {
-		if r == role {
-			return true
-		}
+		roleMap[r] = struct{}{}
 	}
-	return false
+	_, exists := roleMap[role]
+	return exists
 }
 
-func worker() {
-	for notification := range workerPool {
-		clientLock.Lock()
-		for client, role := range clients {
-			if contains(notification.ToRoles, role) { // Send to any role in the list
-				err := client.WriteJSON(notification)
-				if err != nil {
-					client.Close()
-					delete(clients, client)
+// worker processes notifications and sends them to relevant clients
+func worker(ctx context.Context) {
+	for {
+		select {
+		case notification := <-workerPool:
+			clients.Range(func(key, value interface{}) bool {
+				client, ok := key.(*websocket.Conn)
+				if !ok {
+					fmt.Printf("Warning: Failed to assert client type\n")
+					return true
 				}
-			}
+
+				role, ok := value.(string)
+				if !ok {
+					fmt.Printf("Warning: Failed to assert role type\n")
+					return true
+				}
+
+				if contains(notification.ToRoles, role) {
+					buffer := jsonPool.Get().(*bytes.Buffer)
+					buffer.Reset()
+
+					if err := json.NewEncoder(buffer).Encode(notification); err != nil {
+						logErrorAndRemoveClient(client, err)
+						return true
+					}
+
+					if err := client.WriteMessage(websocket.TextMessage, buffer.Bytes()); err != nil {
+						logErrorAndRemoveClient(client, err)
+					}
+
+					jsonPool.Put(buffer) // Return buffer to pool
+				}
+				return true // Continue iteration
+			})
+		case <-ctx.Done():
+			return // Exit worker if context is done
 		}
-		clientLock.Unlock()
 	}
 }
 
-// StartWorkers starts a set number of worker goroutines
-func StartWorkers(numWorkers int) {
+// StartWorkers initiates a specified number of worker goroutines
+func StartWorkers(numWorkers int, ctx context.Context) {
 	for i := 0; i < numWorkers; i++ {
-		go worker() // Start each worker
+		go worker(ctx) // Start worker goroutine
 	}
 }
 
-// RegisterUser handles user registration and sends notifications
-func Notify(from_role string, to_roles []string, msg string) {
-	// Create a notification to inform admins about the new registration
-	notification := Notification{
-		From:    from_role,
-		ToRoles: to_roles, // Indicating that the message is for admins
-		Content: msg,
-	}
+// Notify creates a notification and sends it to the broadcast channel
+func Notify(fromRole string, toRoles []string, msg string) {
+	notification := NewNotification(fromRole, toRoles, msg)
 	broadcast <- notification // Send the notification
 }
 
-// WSHandler handles WebSocket connections
+// WSHandler manages WebSocket connections and authenticates users
 func WSHandler(c *gin.Context) {
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		fmt.Printf("Error upgrading connection: %v\n", err)
 		return
 	}
-	defer conn.Close()
+	defer conn.Close() // Ensure the connection is closed when done
 
 	tokenString := c.Query("token")
 	role := utils.GetRoleFromToken(tokenString)
 
 	if role == "" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Invalid token"})
+		closeConnectionWithError(conn, websocket.ClosePolicyViolation, "Invalid token")
 		return
 	}
 
 	AddClient(conn, role)
+	defer RemoveClient(conn)
 
+	// Set read deadline to prevent resource leaks
 	for {
+		conn.SetReadDeadline(time.Now().Add(readDeadline)) // Reset deadline
 		var msg Notification
-		err := conn.ReadJSON(&msg)
-		if err != nil {
-			RemoveClient(conn)
+		if err := conn.ReadJSON(&msg); err != nil {
+			fmt.Printf("Error reading message from client %v: %v\n", conn.RemoteAddr(), err)
 			break
 		}
 	}
+}
+
+// Helper function to log errors and remove client
+func logErrorAndRemoveClient(client *websocket.Conn, err error) {
+	fmt.Printf("Error: %v\n", err)
+	client.Close()
+	RemoveClient(client) // Clean up client
+}
+
+// Helper function to close a connection with an error message
+func closeConnectionWithError(conn *websocket.Conn, code int, message string) {
+	if err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(code, message)); err != nil {
+		fmt.Printf("Error closing connection: %v\n", err)
+	}
+	conn.Close()
 }

@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -12,13 +13,12 @@ import (
 	"github.com/roto17/zeus/lib/utils"
 )
 
-// var secretKey = []byte("your_secret_key")
-
-func InitRouter() *gin.Engine {
+// InitRouter initializes the Gin router and starts the necessary components
+func InitRouter(ctx context.Context) *gin.Engine {
 	router := gin.Default()
 
-	// Start worker goroutines for handling notifications
-	notifications.StartWorkers(5)
+	// Start 5 worker goroutines for handling notifications, using the provided context
+	notifications.StartWorkers(5, ctx)
 
 	// Load HTML templates for error pages
 	router.LoadHTMLGlob("lib/views/*/*")
@@ -63,5 +63,4 @@ func InitRouter() *gin.Engine {
 	go notifications.HandleMessages() // Start the notification message handler
 
 	return router
-
 }
