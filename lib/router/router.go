@@ -27,7 +27,7 @@ func InitRouter(ctx context.Context) *gin.Engine {
 	router.Use(SetHeaderVariableMiddleware())
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"}, // Adjust to your needs
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "X-Forwarded-For"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
@@ -50,6 +50,10 @@ func InitRouter(ctx context.Context) *gin.Engine {
 		api.GET("/view_user/:id", JWTAuthMiddleware("admin"), actions.ViewUser)
 
 		api.POST("/product_category", JWTAuthMiddleware("admin"), actions.AddProductCategory)
+
+		api.PATCH("/product_category", JWTAuthMiddleware("admin"), actions.UpdateProductCategory)
+
+		api.DELETE("/product_category/:id", JWTAuthMiddleware("admin"), actions.DeleteProductCategory)
 
 		// Other routes
 		router.GET("/verify-email", actions.VerifyByMail)
