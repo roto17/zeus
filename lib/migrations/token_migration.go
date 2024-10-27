@@ -14,6 +14,6 @@ func MigrateToken() {
 		logs.AddLog("Fatal", "roto", fmt.Sprintf("Token migration failed: %v", err))
 		// log.Fatal("Log migration failed:", err)
 	}
-	logs.AddLog("Info", "roto", "Token migration successful!")
+	logs.AddLog("Info", "roto", "Token migration succeeded!")
 	// log.Println("Log migration successful!")
 }

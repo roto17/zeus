@@ -16,6 +16,9 @@ func main() {
 	migrations.MigrateUser()
 	migrations.MigrateToken()
 
+	migrations.MigrateProductCategory()
+	migrations.MigrateProducts()
+
 	// Create a new user
 	// user := models.User{Name: "John Doe yy", Desc: "okokok", Jam: "uuuuu"}
 	// if err := actions.CreateUser(&user); err != nil {

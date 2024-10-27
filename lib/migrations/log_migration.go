@@ -14,6 +14,6 @@ func MigrateLog() {
 		logs.AddLog("Fatal", "roto", fmt.Sprintf("Log migration failed: %v", err))
 		// log.Fatal("Log migration failed:", err)
 	}
-	logs.AddLog("Info", "roto", "Log migration successful!")
+	logs.AddLog("Info", "roto", "Log migration succeeded!")
 	// log.Println("Log migration successful!")
 }

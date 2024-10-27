@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/roto17/zeus/lib/database"
+	"github.com/roto17/zeus/lib/logs"
 	models "github.com/roto17/zeus/lib/models/notifications"
 	"github.com/roto17/zeus/lib/utils"
 )
@@ -27,8 +28,9 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		origin := r.Header.Get("Origin")
-		return origin == "http://localhost:3000" || origin == "http://your-frontend-origin.com"
+		// origin := r.Header.Get("Origin")
+		// return origin == "http://localhost:3000" || origin == "http://your-frontend-origin.com"
+		return true // Allow connections from any origin
 	},
 }
 
@@ -86,13 +88,13 @@ func worker(ctx context.Context) {
 			clients.Range(func(key, value interface{}) bool {
 				client, ok := key.(*websocket.Conn)
 				if !ok {
-					fmt.Printf("Warning: Failed to assert client type\n")
+					logs.AddLog("Warning", "roto", "Warning: Failed to assert client type")
 					return true
 				}
 
 				role, ok := value.(string)
 				if !ok {
-					fmt.Printf("Warning: Failed to assert role type\n")
+					logs.AddLog("Warning", "roto", "Warning: Failed to assert role type")
 					return true
 				}
 
@@ -134,6 +136,7 @@ func Notify(username string, fromRole string, toRoles string, msg string) {
 	// Save the user in the database
 	if err := database.DB.Create(&notification).Error; err != nil {
 		// c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("registration_failed", "", requested_language)})
+		logs.AddLog("Error", "roto", fmt.Sprintf("Can't save notification into db: %v", err))
 		return
 	}
 
@@ -144,7 +147,7 @@ func Notify(username string, fromRole string, toRoles string, msg string) {
 func WSHandler(c *gin.Context) {
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
-		fmt.Printf("Error upgrading connection: %v\n", err)
+		logs.AddLog("Error", "roto", fmt.Sprintf("Error upgrading connection: %v", err))
 		return
 	}
 	defer conn.Close() // Ensure the connection is closed when done
@@ -153,7 +156,7 @@ func WSHandler(c *gin.Context) {
 	role := utils.GetRoleFromToken(tokenString)
 
 	if role == "" {
-		closeConnectionWithError(conn, websocket.ClosePolicyViolation, "Invalid token")
+		closeConnectionWithError(conn, websocket.ClosePolicyViolation, "Invalid or expired token !")
 		return
 	}
 
@@ -165,7 +168,7 @@ func WSHandler(c *gin.Context) {
 		conn.SetReadDeadline(time.Now().Add(readDeadline)) // Reset deadline
 		var msg models.Notification
 		if err := conn.ReadJSON(&msg); err != nil {
-			fmt.Printf("Error reading message from client %v: %v\n", conn.RemoteAddr(), err)
+			logs.AddLog("Error", "roto", fmt.Sprintf("Error reading message from client %v: %v", conn.RemoteAddr(), err))
 			break
 		}
 	}
@@ -173,7 +176,7 @@ func WSHandler(c *gin.Context) {
 
 // Helper function to log errors and remove client
 func logErrorAndRemoveClient(client *websocket.Conn, err error) {
-	fmt.Printf("Error: %v\n", err)
+	logs.AddLog("Error", "roto", fmt.Sprintf("Socket failed: %v", err))
 	client.Close()
 	RemoveClient(client) // Clean up client
 }
@@ -181,7 +184,7 @@ func logErrorAndRemoveClient(client *websocket.Conn, err error) {
 // Helper function to close a connection with an error message
 func closeConnectionWithError(conn *websocket.Conn, code int, message string) {
 	if err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(code, message)); err != nil {
-		fmt.Printf("Error closing connection: %v\n", err)
+		logs.AddLog("Error", "roto", fmt.Sprintf("Socket connection failed: %v", err))
 	}
 	conn.Close()
 }

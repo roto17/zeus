@@ -84,13 +84,8 @@ func Register(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("failed_to_send_verification_email", "", requested_language)})
 		return
 	}
-	// Return success message
-	// notifications.SendNotification("A new user has been added: " + user.Username)
-
-	// After successfully registering a user
 
 	toRoles := []string{"admin", "manager", "user"}
-
 	notifications.Notify(newUser.Username, newUser.Role, strings.Join(toRoles, ","), "added success!") // Call the RegisterUser function to send a notification
 
 	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("registration_completed", "", requested_language)})
@@ -262,26 +257,11 @@ func ViewUser(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
-// func CreateUser(user *model_user.User) error {
-// 	result := database.DB.Create(&user)
-// 	return result.Error
-// }
-
 func GetUser(id int) (model_user.User, error) {
 	var user model_user.User
 	result := database.DB.First(&user, id)
 	return user, result.Error
 }
-
-// func UpdateUser(user *model_user.User) error {
-// 	result := database.DB.Save(&user)
-// 	return result.Error
-// }
-
-// func DeleteUser(id int) error {
-// 	result := database.DB.Delete(&model_user.User{}, id)
-// 	return result.Error
-// }
 
 func SendVerificationEmail(userEmail, token, appBaseURL, smtpUser, smtpPass, smtpHost string, smtpPort int) error {
 	// Create the verification URL
@@ -317,67 +297,6 @@ func SendVerificationEmail(userEmail, token, appBaseURL, smtpUser, smtpPass, smt
 	}
 	return nil
 }
-
-// // Register handles registration
-// func VerifyByMail(c *gin.Context) {
-// 	tokenString := c.Query("signature")
-// 	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
-
-// 	if tokenString == "" {
-// 		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("signature_required", "", requested_language)})
-// 		return
-// 	}
-
-// 	// Parse the token
-// 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-// 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-// 			return nil, http.ErrAbortHandler
-// 		}
-// 		return []byte(config.GetEnv("secretkey")), nil
-// 	})
-
-// 	if err != nil || !token.Valid {
-// 		c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("invalid_or_expired_token", "", requested_language)})
-// 		c.Abort()
-// 		return
-// 	}
-
-// 	// Extract the claims
-// 	claims, ok := token.Claims.(jwt.MapClaims)
-// 	if !ok {
-// 		c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("invalid_token_claims", "", requested_language)})
-// 		c.Abort()
-// 		return
-// 	}
-
-// 	user_id := utils.StringToInt(claims["user_id"].(string))
-
-// 	var user model_user.User
-// 	result := database.DB.First(&user, user_id)
-
-// 	if result.Error != nil {
-// 		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
-// 		c.Abort()
-// 		return
-// 	}
-
-// 	if !user.VerifiedAt.IsZero() {
-// 		c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("acct_already_verified", "", requested_language)})
-// 		return
-
-// 	}
-
-// 	user.VerifiedAt = time.Now()
-
-// 	if err := database.DB.Save(&user).Error; err != nil {
-// 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("update_verification_date_failed", "", requested_language)})
-// 		c.Abort()
-// 		return
-// 	}
-
-// 	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("user_verified_successfully", "", requested_language)})
-
-// }
 
 // VerifyByMail handles email verification
 func VerifyByMail(c *gin.Context) {

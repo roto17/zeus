@@ -35,7 +35,7 @@ func LoadTranslationFile() {
 	if err != nil {
 		logs.AddLog("Fatal", "roto", fmt.Sprintf("Failed to unmarshal JSON: %v", err))
 	} else {
-		logs.AddLog("Fatal", "roto", "I18n.json file loaded successefuly")
+		logs.AddLog("Info", "roto", "I18n.json file loaded successefuly")
 	}
 
 }

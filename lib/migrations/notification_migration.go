@@ -14,6 +14,6 @@ func MigrateNotification() {
 		logs.AddLog("Fatal", "roto", fmt.Sprintf("Notification migration failed: %v", err))
 		// log.Fatal("Log migration failed:", err)
 	}
-	logs.AddLog("Info", "roto", "Notification migration successful!")
+	logs.AddLog("Info", "roto", "Notification migration succeeded!")
 	// log.Println("Log migration successful!")
 }
