@@ -26,8 +26,6 @@ func AddProductCategory(c *gin.Context) {
 
 	newCategory := model_product_category.ProductCategory{
 		Description: category.Description,
-		// CreatedAt:   time.Now(),
-		// UpdatedAt:   time.Now(),
 	}
 
 	// Validate and get translated error messages
@@ -45,10 +43,10 @@ func AddProductCategory(c *gin.Context) {
 
 	// Save the user in the database
 	if err := db.Create(&validatedCategory).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("registration_failed", "", requested_language)})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("faild_addition", "", requested_language)})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("registration_completed", "", requested_language)})
+	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("added_successfuly", "", requested_language)})
 
 }

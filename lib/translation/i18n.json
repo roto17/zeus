@@ -25,7 +25,9 @@
     "user_verified_successfully": "User verified successfully.",
     "required": "This field is required.",
     "oneof": "Please select one of the list : {values}.",
-    "unique": "This value must be unique."
+    "unique": "This value must be unique.",
+    "faild_addition": "Failed to add the item.",
+    "added_successfuly" : "added successfuly."
     
   },
   "fr": {
@@ -54,6 +56,8 @@
     "user_verified_successfully": "Utilisateur vérifié avec succès.",
     "required": "Ce champ est requis.",
     "oneof": "Veuillez sélectionner l'une des : {values}.",
-    "unique": "Cette valeur doit être unique."
+    "unique": "Cette valeur doit être unique.",
+    "faild_addition": "Échec de l'ajout de l'élément.",
+    "added_successfuly" : "Ajouté avec succès."
   }
 }
