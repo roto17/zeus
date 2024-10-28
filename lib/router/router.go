@@ -49,11 +49,11 @@ func InitRouter(ctx context.Context) *gin.Engine {
 		// Route for viewing a user by ID (Admin access only)
 		api.GET("/view_user/:id", JWTAuthMiddleware("admin"), actions.ViewUser)
 
-		api.POST("/product_category", JWTAuthMiddleware("admin"), actions.AddProductCategory)
+		api.POST("/product_categories", JWTAuthMiddleware("admin"), actions.AddProductCategory)
+		api.PATCH("/product_categories", JWTAuthMiddleware("admin"), actions.UpdateProductCategory)
+		api.DELETE("/product_categories/:id", JWTAuthMiddleware("admin"), actions.DeleteProductCategory)
 
-		api.PATCH("/product_category", JWTAuthMiddleware("admin"), actions.UpdateProductCategory)
-
-		api.DELETE("/product_category/:id", JWTAuthMiddleware("admin"), actions.DeleteProductCategory)
+		api.POST("/products", JWTAuthMiddleware("admin"), actions.AddProduct)
 
 		// Other routes
 		router.GET("/verify-email", actions.VerifyByMail)
