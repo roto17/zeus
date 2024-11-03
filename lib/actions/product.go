@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/roto17/zeus/lib/database"
 
+	model_product_category "github.com/roto17/zeus/lib/models/productcategories"
 	model_product "github.com/roto17/zeus/lib/models/products"
 	"github.com/roto17/zeus/lib/translation" // Assuming translation package handles translations
 	"github.com/roto17/zeus/lib/utils"
@@ -23,10 +24,18 @@ func AddProduct(c *gin.Context) {
 		return
 	}
 
+	// Find the user by username
+	var searched_category model_product_category.ProductCategory
+	if err := database.DB.Where("id = ?", productInput.CategoryID).First(&searched_category).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "No mathcing Catgeory"})
+		return
+	}
+
 	productValidation := model_product.Product{
 		Description: productInput.Description,
 		QRCode:      productInput.QRCode,
 		CategoryID:  productInput.CategoryID,
+		Category:    searched_category,
 	}
 
 	// Validate the incoming product data
