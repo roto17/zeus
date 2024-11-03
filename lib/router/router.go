@@ -55,6 +55,8 @@ func InitRouter(ctx context.Context) *gin.Engine {
 
 		api.POST("/products", JWTAuthMiddleware("admin"), actions.AddProduct)
 
+		api.GET("/products", JWTAuthMiddleware("admin"), actions.SaveQR)
+
 		// Other routes
 		router.GET("/verify-email", actions.VerifyByMail)
 	}
