@@ -2,14 +2,11 @@ package actions
 
 import (
 	"fmt"
-	"image"
-	"image/draw"
 	"image/png"
 	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/nfnt/resize"
 	"github.com/roto17/zeus/lib/database"
 	"github.com/skip2/go-qrcode"
 
@@ -69,10 +66,18 @@ func AddProduct(c *gin.Context) {
 
 func SaveQR(c *gin.Context) {
 
-	content := "https://example.com"
+	content, err := utils.DecryptID("MohliEVNFgSvICs6HqhR+KMmxPmm9goeJwNSnt2EnA==")
+
+	fmt.Printf("----------------------------\n")
+	fmt.Printf("%v", content)
+	fmt.Printf("----------------------------\n")
+
+	if err != nil {
+		fmt.Println("Error Encrypting ID Product:", err)
+	}
 
 	// Generate QR code
-	qrCode, err := qrcode.New(content, qrcode.Medium)
+	qrCode, err := qrcode.New(fmt.Sprintf("%d", content), qrcode.Medium)
 	if err != nil {
 		fmt.Println("Error generating QR code:", err)
 		return
@@ -82,50 +87,19 @@ func SaveQR(c *gin.Context) {
 	qrCode.DisableBorder = true
 	qrCodeImg := qrCode.Image(256) // Generates a 256x256 image
 
-	// Open the logo image
-	logoFile, err := os.Open("lib/images/logo/logo.png")
-	if err != nil {
-		fmt.Println("Error opening logo:", err)
-		return
-	}
-	defer logoFile.Close()
-
-	// Decode logo image
-	logoImg, _, err := image.Decode(logoFile)
-	if err != nil {
-		fmt.Println("Error decoding logo:", err)
-		return
-	}
-
-	// Resize the logo to be smaller
-	logoSize := uint(50) // Set desired logo size
-	resizedLogo := resize.Resize(logoSize, logoSize, logoImg, resize.Lanczos3)
-
-	// Position the logo in the bottom-right corner
-	offset := image.Pt(qrCodeImg.Bounds().Dx()-resizedLogo.Bounds().Dx()-10, qrCodeImg.Bounds().Dy()-resizedLogo.Bounds().Dy()-10)
-
-	// Create a new RGBA image with the same size as the QR code
-	finalImg := image.NewRGBA(qrCodeImg.Bounds())
-
-	// Draw the QR code on the final image
-	draw.Draw(finalImg, qrCodeImg.Bounds(), qrCodeImg, image.Point{}, draw.Src)
-
-	// Overlay the resized logo in the bottom-right corner of the QR code
-	draw.Draw(finalImg, resizedLogo.Bounds().Add(offset), resizedLogo, image.Point{}, draw.Over)
-
-	// Save the final image
-	outputFile, err := os.Create("lib/images/qrcodes/qrcode_with_bottom_corner_logo.png")
+	// Save the QR code image
+	outputFile, err := os.Create("lib/images/qrcodes/qrcode.png")
 	if err != nil {
 		fmt.Println("Error saving QR code:", err)
 		return
 	}
 	defer outputFile.Close()
 
-	err = png.Encode(outputFile, finalImg)
+	err = png.Encode(outputFile, qrCodeImg)
 	if err != nil {
 		fmt.Println("Error encoding PNG:", err)
 		return
 	}
 
-	fmt.Println("QR code with logo saved to lib/images/qrcodes/qrcode_with_bottom_corner_logo.png")
+	fmt.Println("QR code saved to lib/images/qrcodes/qrcode.png")
 }
