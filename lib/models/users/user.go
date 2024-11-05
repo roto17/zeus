@@ -2,6 +2,9 @@ package models
 
 import (
 	"time"
+
+	encryptions "github.com/roto17/zeus/lib/encryption"
+	"gorm.io/gorm"
 	// model_token "github.com/roto17/zeus/lib/models/tokens"
 )
 
@@ -16,6 +19,7 @@ type User struct {
 	Role       string    `gorm:"type:varchar(50)" validate:"required,oneof=admin user guest" json:"role"` // Max 50 characters
 	VerifiedAt time.Time `gorm:"type:timestamp" json:"verified_at,omitempty"`
 	// Tokens     []model_token.Token // A user can have multiple tokens
+	EncryptedID string `gorm:"-" json:"-"`
 }
 
 type CreateUserInput struct {
@@ -37,3 +41,19 @@ type LoginUserInput struct {
 // func (LoginUserInput) TableName() string {
 // 	return "users" // Replace this with your desired table name
 // }
+
+// BeforeSave is a GORM hook that gets called before saving a record
+func (u *User) BeforeSave(tx *gorm.DB) (err error) {
+	// Encrypt the OriginalID and store it in ID as a base64 string
+	u.ID = encryptions.DecryptID(u.EncryptedID)
+	return nil
+}
+
+// AfterFind is a GORM hook that gets called after a record is retrieved from the database
+func (u *User) AfterFind(tx *gorm.DB) (err error) {
+	// Decrypt ID and restore it to OriginalID
+	decryptedID := encryptions.EncryptID(u.ID)
+
+	u.EncryptedID = decryptedID
+	return nil
+}

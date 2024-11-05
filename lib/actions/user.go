@@ -260,6 +260,14 @@ func ViewUser(c *gin.Context) {
 func GetUser(id int) (model_user.User, error) {
 	var user model_user.User
 	result := database.DB.First(&user, id)
+
+	fmt.Printf("------------------------\n")
+	fmt.Printf("%s", user.EncryptedID)
+
+	user.ID = 0
+
+	fmt.Printf("------------------------\n")
+
 	return user, result.Error
 }
 

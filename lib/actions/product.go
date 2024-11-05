@@ -66,15 +66,17 @@ func AddProduct(c *gin.Context) {
 
 func SaveQR(c *gin.Context) {
 
-	content, err := utils.DecryptID("MohliEVNFgSvICs6HqhR+KMmxPmm9goeJwNSnt2EnA==")
+	// content := utils.DecryptID("MohliEVNFgSvICs6HqhR+KMmxPmm9goeJwNSnt2EnA==")
+
+	content := "wwwwww"
 
 	fmt.Printf("----------------------------\n")
 	fmt.Printf("%v", content)
 	fmt.Printf("----------------------------\n")
 
-	if err != nil {
-		fmt.Println("Error Encrypting ID Product:", err)
-	}
+	// if err != nil {
+	// 	fmt.Println("Error Encrypting ID Product:", err)
+	// }
 
 	// Generate QR code
 	qrCode, err := qrcode.New(fmt.Sprintf("%d", content), qrcode.Medium)
