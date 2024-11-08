@@ -2,9 +2,7 @@ package models
 
 import (
 	"time"
-
-	encryptions "github.com/roto17/zeus/lib/encryption"
-	"gorm.io/gorm"
+	// "gorm.io/gorm"
 	// model_token "github.com/roto17/zeus/lib/models/tokens"
 )
 
@@ -19,7 +17,7 @@ type User struct {
 	Role       string    `gorm:"type:varchar(50)" validate:"required,oneof=admin user guest" json:"role"` // Max 50 characters
 	VerifiedAt time.Time `gorm:"type:timestamp" json:"verified_at,omitempty"`
 	// Tokens     []model_token.Token // A user can have multiple tokens
-	EncryptedID string `gorm:"-" json:"-"`
+	// EncryptedID string `gorm:"-" json:"-"`
 }
 
 type CreateUserInput struct {
@@ -43,17 +41,38 @@ type LoginUserInput struct {
 // }
 
 // BeforeSave is a GORM hook that gets called before saving a record
-func (u *User) BeforeSave(tx *gorm.DB) (err error) {
-	// Encrypt the OriginalID and store it in ID as a base64 string
-	u.ID = encryptions.DecryptID(u.EncryptedID)
-	return nil
-}
+// func (user *User,encryptedUser *EncryptedUser) BeforeSave(tx *gorm.DB) (err error) {
+// 	// Encrypt the OriginalID and store it in ID as a base64 string
+// 	u.ID = encryptions.DecryptID(user.EncryptedID)
+// 	return nil
+// }
 
 // AfterFind is a GORM hook that gets called after a record is retrieved from the database
-func (u *User) AfterFind(tx *gorm.DB) (err error) {
-	// Decrypt ID and restore it to OriginalID
-	decryptedID := encryptions.EncryptID(u.ID)
+// func (user *User, encryptedUser *EncryptedUser) AfterFind(tx *gorm.DB) (err error) {
+// 	// Decrypt ID and restore it to OriginalID
+// 	// decryptedID := encryptions.EncryptID(u.ID)
 
-	u.EncryptedID = decryptedID
-	return nil
-}
+// 	// u.EncryptedID = decryptedID
+
+// 	encryptedUser.FirstName = user.FirstName
+// 	encryptedUser.MiddleName = user.MiddleName
+// 	encryptedUser.LastName = user.LastName
+// 	encryptedUser.Username = user.Username
+// 	encryptedUser.Email = user.Email
+// 	encryptedUser.Password = user.Password
+// 	encryptedUser.Role = user.Role
+
+// 	return nil
+// }
+
+// type EncryptedUser struct {
+// 	ID         string    `gorm:"-" json:"-"`
+// 	FirstName  string    `gorm:"-" json:"-"`
+// 	MiddleName string    `gorm:"-" json:"-"`
+// 	LastName   string    `gorm:"-" json:"-"`
+// 	Username   string    `gorm:"-" json:"-"`
+// 	Email      string    `gorm:"-" json:"-"`
+// 	Password   string    `gorm:"-" json:"-"`
+// 	Role       string    `gorm:"-" json:"-"`
+// 	VerifiedAt time.Time `gorm:"-" json:"-"`
+// }
