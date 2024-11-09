@@ -9,3 +9,8 @@ type ProductCategory struct {
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
+
+type ProductCategoryEncrypted struct {
+	ID          string `validate:"required" json:"id"`
+	Description string `validate:"required" json:"description"`
+}

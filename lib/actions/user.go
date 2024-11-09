@@ -259,18 +259,11 @@ func ViewUser(c *gin.Context) {
 }
 
 func GetUser(id int) (interface{}, error) {
+
 	var user model_user.User
 	result := database.DB.First(&user, id)
-	test := encryptions.EncryptObjectID(user)
-
-	test2 := encryptions.DecryptObjectID(test)
-
-	fmt.Printf("------------------------\n")
-	fmt.Printf("%v", test)
-
-	fmt.Printf("------------------------\n")
-
-	return test2, result.Error
+	encryptedUser := encryptions.EncryptObjectID(user)
+	return encryptedUser, result.Error
 }
 
 func SendVerificationEmail(userEmail, token, appBaseURL, smtpUser, smtpPass, smtpHost string, smtpPort int) error {

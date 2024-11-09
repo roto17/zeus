@@ -1,13 +1,16 @@
 package actions
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/roto17/zeus/lib/database"
+	encryptions "github.com/roto17/zeus/lib/encryption"
 
 	model_product_category "github.com/roto17/zeus/lib/models/productcategories"
+	models "github.com/roto17/zeus/lib/models/productcategories"
 	"github.com/roto17/zeus/lib/translation" // Assuming translation package handles translations
 	"github.com/roto17/zeus/lib/utils"
 )
@@ -53,13 +56,25 @@ func AddProductCategory(c *gin.Context) {
 func UpdateProductCategory(c *gin.Context) {
 	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
 	db := database.DB
+	var encryptedCategory model_product_category.ProductCategoryEncrypted
 	var category model_product_category.ProductCategory
 
 	// Bind the incoming JSON to the category struct
-	if err := c.ShouldBindJSON(&category); err != nil {
+	if err := c.ShouldBindJSON(&encryptedCategory); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("invalid_input", "", requested_language)})
 		return
 	}
+
+	// category = encryptions.DecryptObjectID(encryptedCategory)
+
+	category, ok := encryptions.DecryptObjectID(encryptedCategory, &category).(models.ProductCategory)
+	if !ok {
+		panic("failed to assert type to ProductCategory")
+	}
+
+	fmt.Printf("---------------------\n")
+	fmt.Printf("%v", category)
+	fmt.Printf("---------------------\n")
 
 	// Fetch the existing category by ID
 	var existingCategory model_product_category.ProductCategory
@@ -83,6 +98,10 @@ func UpdateProductCategory(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("faild_update", "", requested_language)})
 		return
 	}
+
+	// fmt.Printf("----------------------\n")
+	// fmt.Printf("%v", encryptions.EncryptObjectID(existingCategory))
+	// fmt.Printf("----------------------\n")
 
 	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("updated_successfully", "", requested_language)})
 }

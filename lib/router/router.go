@@ -50,7 +50,7 @@ func InitRouter(ctx context.Context) *gin.Engine {
 		api.GET("/view_user/:id", JWTAuthMiddleware("admin"), actions.ViewUser)
 
 		api.POST("/product_categories", JWTAuthMiddleware("admin"), actions.AddProductCategory)
-		api.PATCH("/product_categories", JWTAuthMiddleware("admin"), actions.UpdateProductCategory)
+		api.PUT("/product_categories", JWTAuthMiddleware("admin"), actions.UpdateProductCategory)
 		api.DELETE("/product_categories/:id", JWTAuthMiddleware("admin"), actions.DeleteProductCategory)
 
 		api.POST("/products", JWTAuthMiddleware("admin"), actions.AddProduct)
