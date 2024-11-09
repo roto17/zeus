@@ -3,7 +3,6 @@ package actions
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/roto17/zeus/lib/database"
@@ -72,10 +71,6 @@ func UpdateProductCategory(c *gin.Context) {
 		panic("failed to assert type to ProductCategory")
 	}
 
-	fmt.Printf("---------------------\n")
-	fmt.Printf("%v", category)
-	fmt.Printf("---------------------\n")
-
 	// Fetch the existing category by ID
 	var existingCategory model_product_category.ProductCategory
 	if err := db.First(&existingCategory, category.ID).Error; err != nil {
@@ -99,10 +94,6 @@ func UpdateProductCategory(c *gin.Context) {
 		return
 	}
 
-	// fmt.Printf("----------------------\n")
-	// fmt.Printf("%v", encryptions.EncryptObjectID(existingCategory))
-	// fmt.Printf("----------------------\n")
-
 	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("updated_successfully", "", requested_language)})
 }
 
@@ -112,12 +103,16 @@ func DeleteProductCategory(c *gin.Context) {
 	db := database.DB
 
 	// Get the category ID from the URL parameter
-	categoryID, err := strconv.Atoi(c.Param("id"))
+	categoryID := utils.DecryptID(c.Param("encrypted_id"))
 
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("invalid_id", "", requested_language)})
-		return
-	}
+	fmt.Printf("------------%v------------", categoryID)
+
+	// if err != nil {
+	// 	c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("invalid_id", "", requested_language)})
+	// 	return
+	// }
+
+	// categoryID := utils.DecryptID(encryptedCategoryID)
 
 	// Check if the category exists
 	var category model_product_category.ProductCategory

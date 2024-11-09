@@ -96,8 +96,14 @@ func DecryptObjectID(data interface{}, target interface{}) interface{} {
 		// If the field is named "ID" and is of type string, decrypt it
 		if originalFieldType.Name == "ID" && originalFieldType.Type.Kind() == reflect.String {
 			if newField.Kind() == reflect.Uint {
-				decryptedID := encryptions.DecryptID(originalField.String())
+				var decryptedID uint
+
+				if originalField.IsValid() && originalField.Kind() == reflect.String && originalField.String() != "" {
+					decryptedID = encryptions.DecryptID(originalField.String())
+				}
+
 				newField.SetUint(uint64(decryptedID))
+
 			}
 		} else {
 			// Otherwise, copy the value as is

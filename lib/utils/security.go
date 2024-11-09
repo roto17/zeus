@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"net/url"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -115,28 +116,36 @@ func EncryptID(id uint) string {
 	ciphertext := aesGCM.Seal(nonce, nonce, idBytes, nil)
 
 	// Encode the ciphertext to base64 for easier storage or transmission
-	return base64.StdEncoding.EncodeToString(ciphertext)
+	return url.QueryEscape(base64.StdEncoding.EncodeToString(ciphertext))
 }
 
 // DecryptID decrypts the encrypted string to retrieve the original integer ID
 func DecryptID(encryptedID string) uint {
-	// Decode the base64-encoded string
-	ciphertext, err := base64.StdEncoding.DecodeString(encryptedID)
+
+	// URL decode the string
+	decodedStr, err := url.QueryUnescape(encryptedID)
 	if err != nil {
-		fmt.Printf("%v", err)
+		// Handle error if decoding fails
+		fmt.Println("Error decoding:", err)
+	}
+
+	// Decode the base64-encoded string
+	ciphertext, err := base64.StdEncoding.DecodeString(decodedStr)
+	if err != nil {
+		fmt.Printf("test %v", err)
 	}
 
 	// Create a new AES cipher with the provided key
 	block, err := aes.NewCipher([]byte(config.GetEnv("encryption_key")))
 	if err != nil {
-		fmt.Printf("%v", err)
+		fmt.Printf("error key %v", err)
 	}
 
 	// Generate a new GCM cipher based on AES
 	aesGCM, err := cipher.NewGCM(block)
 	if err != nil {
 		// return 0, err
-		fmt.Printf("%v", err)
+		fmt.Printf("test %v", err)
 	}
 
 	// Split the nonce and the actual ciphertext
@@ -147,7 +156,7 @@ func DecryptID(encryptedID string) uint {
 	idBytes, err := aesGCM.Open(nil, nonce, ciphertext, nil)
 	if err != nil {
 		// return 0, err
-		fmt.Printf("%v", err)
+		fmt.Printf("tes %v", err)
 	}
 
 	// Convert the decrypted bytes back to an integer
