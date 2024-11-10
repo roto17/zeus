@@ -27,12 +27,14 @@
     "oneof": "Please select one of the list : {values}.",
     "unique": "This value must be unique.",
     "faild_addition": "Failed to add the item.",
+    "faild_deletion": "Failed to delete the item.",
     "added_successfuly": "added successfuly.",
     "category_not_found": "The requested category could not be found.",
     "faild_update": "Failed to update the record. Please try again.",
     "updated_successfully": "The record has been updated successfully.",
     "failed_delete": "Failed to delete the record. Please try again.",
-    "delete_successfully": "The record has been deleted successfully."
+    "delete_successfully": "The record has been deleted successfully.",
+    "fk_issue":"This item is associated with other records and cannot be deleted or updated. Please modify or remove the related records first."
   },
   "fr": {
     "required_header": "L'en-tête d'autorisation est requis",
@@ -62,11 +64,13 @@
     "oneof": "Veuillez sélectionner l'une des : {values}.",
     "unique": "Cette valeur doit être unique.",
     "faild_addition": "Échec de l'ajout de l'élément.",
+    "faild_deletion": "Échec de la suppression de l'élément.",
     "added_successfuly": "Ajouté avec succès.",
     "category_not_found": "La catégorie demandée est introuvable.",
     "faild_update": "Échec de la mise à jour de l'enregistrement. Veuillez réessayer.",
     "updated_successfully": "L'enregistrement a été mis à jour avec succès.",
     "failed_delete": "Échec de la suppression de l'enregistrement. Veuillez réessayer.",
-    "delete_successfully": "L'enregistrement a été supprimé avec succès."
+    "delete_successfully": "L'enregistrement a été supprimé avec succès.",
+    "fk_issue":"Cet élément est associé à d'autres enregistrements et ne peut pas être supprimé ou mis à jour. Veuillez d'abord modifier ou supprimer les enregistrements liés."
   }
 }

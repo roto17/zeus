@@ -3,6 +3,7 @@ package actions
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/roto17/zeus/lib/database"
@@ -64,8 +65,6 @@ func UpdateProductCategory(c *gin.Context) {
 		return
 	}
 
-	// category = encryptions.DecryptObjectID(encryptedCategory)
-
 	category, ok := encryptions.DecryptObjectID(encryptedCategory, &category).(models.ProductCategory)
 	if !ok {
 		panic("failed to assert type to ProductCategory")
@@ -105,15 +104,6 @@ func DeleteProductCategory(c *gin.Context) {
 	// Get the category ID from the URL parameter
 	categoryID := utils.DecryptID(c.Param("encrypted_id"))
 
-	fmt.Printf("------------%v------------", categoryID)
-
-	// if err != nil {
-	// 	c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("invalid_id", "", requested_language)})
-	// 	return
-	// }
-
-	// categoryID := utils.DecryptID(encryptedCategoryID)
-
 	// Check if the category exists
 	var category model_product_category.ProductCategory
 	if err := db.First(&category, categoryID).Error; err != nil {
@@ -123,7 +113,17 @@ func DeleteProductCategory(c *gin.Context) {
 
 	// Delete the category from the database
 	if err := db.Delete(&category).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("faild_delete", "", requested_language)})
+
+		fmt.Printf("------------------------\n")
+		fmt.Printf("%v", err)
+		fmt.Printf("------------------------\n")
+
+		if strings.Contains(err.Error(), "23503") {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("fk_issue", "", requested_language)})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("faild_deletion", "", requested_language)})
 		return
 	}
 
