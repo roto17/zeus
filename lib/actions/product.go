@@ -5,9 +5,11 @@ import (
 	"image/png"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/roto17/zeus/lib/database"
+	encryptions "github.com/roto17/zeus/lib/encryption"
 	"github.com/skip2/go-qrcode"
 
 	model_product_category "github.com/roto17/zeus/lib/models/productcategories"
@@ -62,6 +64,53 @@ func AddProduct(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("added_successfuly", "", requestedLanguage)})
+}
+
+// // AddProduct handles the creation of a new product
+// func UpdateProduct(c *gin.Context) {
+// 	requestedLanguage := utils.GetHeaderVarToString(c.Get("requested_language"))
+// 	// db := database.DB
+// 	var encryptedProduct model_product.ProductEncrypted
+// 	// var Product model_product.Product
+
+// 	// Bind the incoming JSON to the category struct
+// 	if err := c.ShouldBindJSON(&encryptedProduct); err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("invalid_input", "", requested_language)})
+// 		return
+// 	}
+
+// 	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("updated_successfully", "", requestedLanguage)})
+// }
+
+// ViewUser handler
+func ViewProduct(c *gin.Context) {
+	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
+
+	// Get the user ID from URL param
+	idParam := c.Param("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("invalid_id", "", requested_language)})
+		return
+	}
+
+	// Use the GetUser function to fetch the user by ID
+	user, err := GetProduct(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
+		return
+	}
+
+	// Return the user
+	c.JSON(http.StatusOK, user)
+}
+
+func GetProduct(id int) (interface{}, error) {
+
+	var user model_product.Product
+	result := database.DB.First(&user, id)
+	encryptedUser := encryptions.EncryptObjectID(user)
+	return encryptedUser, result.Error
 }
 
 func SaveQR(c *gin.Context) {

@@ -1,7 +1,6 @@
 package actions
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -10,7 +9,6 @@ import (
 	encryptions "github.com/roto17/zeus/lib/encryption"
 
 	model_product_category "github.com/roto17/zeus/lib/models/productcategories"
-	models "github.com/roto17/zeus/lib/models/productcategories"
 	"github.com/roto17/zeus/lib/translation" // Assuming translation package handles translations
 	"github.com/roto17/zeus/lib/utils"
 )
@@ -65,7 +63,7 @@ func UpdateProductCategory(c *gin.Context) {
 		return
 	}
 
-	category, ok := encryptions.DecryptObjectID(encryptedCategory, &category).(models.ProductCategory)
+	category, ok := encryptions.DecryptObjectID(encryptedCategory, &category).(model_product_category.ProductCategory)
 	if !ok {
 		panic("failed to assert type to ProductCategory")
 	}
@@ -73,7 +71,7 @@ func UpdateProductCategory(c *gin.Context) {
 	// Fetch the existing category by ID
 	var existingCategory model_product_category.ProductCategory
 	if err := db.First(&existingCategory, category.ID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("category_not_found", "", requested_language)})
+		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
 		return
 	}
 
@@ -107,16 +105,12 @@ func DeleteProductCategory(c *gin.Context) {
 	// Check if the category exists
 	var category model_product_category.ProductCategory
 	if err := db.First(&category, categoryID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("category_not_found", "", requested_language)})
+		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
 		return
 	}
 
 	// Delete the category from the database
 	if err := db.Delete(&category).Error; err != nil {
-
-		fmt.Printf("------------------------\n")
-		fmt.Printf("%v", err)
-		fmt.Printf("------------------------\n")
 
 		if strings.Contains(err.Error(), "23503") {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("fk_issue", "", requested_language)})

@@ -2,6 +2,7 @@ package encryptions
 
 import (
 	"reflect"
+	"strings"
 
 	encryptions "github.com/roto17/zeus/lib/utils"
 )
@@ -24,7 +25,7 @@ func EncryptObjectID(data interface{}) interface{} {
 		field := originalType.Field(i)
 
 		// If the field is named "ID" and is of type uint, change its type to string
-		if field.Name == "ID" && field.Type.Kind() == reflect.Uint {
+		if strings.HasSuffix(field.Name, "ID") && field.Type.Kind() == reflect.Uint {
 			fields = append(fields, reflect.StructField{
 				Name: field.Name,
 				Type: reflect.TypeOf(""), // Change type to string
@@ -48,7 +49,8 @@ func EncryptObjectID(data interface{}) interface{} {
 		newField := newStruct.Field(i)
 
 		// If the field is named "ID" and is of type string, convert the uint to string
-		if fields[i].Name == "ID" && fields[i].Type.Kind() == reflect.String {
+		if strings.HasSuffix(fields[i].Name, "ID") && fields[i].Type.Kind() == reflect.String {
+
 			newField.SetString(encryptions.EncryptID(uint(originalField.Uint())))
 		} else {
 			// Otherwise, copy the value as is
@@ -94,7 +96,7 @@ func DecryptObjectID(data interface{}, target interface{}) interface{} {
 		}
 
 		// If the field is named "ID" and is of type string, decrypt it
-		if originalFieldType.Name == "ID" && originalFieldType.Type.Kind() == reflect.String {
+		if strings.HasSuffix(originalFieldType.Name, "ID") && originalFieldType.Type.Kind() == reflect.String {
 			if newField.Kind() == reflect.Uint {
 				var decryptedID uint
 
