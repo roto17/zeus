@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/roto17/zeus/lib/utils"
 	encryptions "github.com/roto17/zeus/lib/utils"
 )
 
@@ -23,9 +24,19 @@ func EncryptObjectID(data interface{}) interface{} {
 	// Iterate through the fields of the original struct
 	for i := 0; i < originalType.NumField(); i++ {
 		field := originalType.Field(i)
+		fieldType := field.Type
 
-		// If the field is named "ID" and is of type uint, change its type to string
-		if strings.HasSuffix(field.Name, "ID") && field.Type.Kind() == reflect.Uint {
+		if fieldType.Kind() == reflect.Struct && fieldType.String() != "time.Time" {
+			// If the field is a struct (not time.Time), recursively modify its fields
+			subFields := EncryptObjectID(reflect.New(fieldType).Elem().Interface())
+
+			fields = append(fields, reflect.StructField{
+				Name: field.Name,
+				Type: reflect.TypeOf(subFields), // Set the type of the nested struct
+				Tag:  field.Tag,
+			})
+		} else if strings.HasSuffix(field.Name, "ID") && fieldType.Kind() == reflect.Uint {
+			// Modify fields ending with "ID" of type uint to string
 			fields = append(fields, reflect.StructField{
 				Name: field.Name,
 				Type: reflect.TypeOf(""), // Change type to string
@@ -39,8 +50,6 @@ func EncryptObjectID(data interface{}) interface{} {
 
 	// Create a new struct type with the modified fields
 	newStructType := reflect.StructOf(fields)
-
-	// Create a new instance of the newly defined struct type
 	newStruct := reflect.New(newStructType).Elem()
 
 	// Copy field values from the original struct to the new struct
@@ -48,12 +57,24 @@ func EncryptObjectID(data interface{}) interface{} {
 		originalField := originalValue.Field(i)
 		newField := newStruct.Field(i)
 
-		// If the field is named "ID" and is of type string, convert the uint to string
+		// Handle "ID" fields
 		if strings.HasSuffix(fields[i].Name, "ID") && fields[i].Type.Kind() == reflect.String {
+			newField.SetString(utils.EncryptID(uint(originalField.Uint())))
+		} else if fields[i].Type.Kind() == reflect.Struct {
+			// Recursively handle nested structs
+			originalFieldValue := originalField.Interface()
+			if reflect.TypeOf(originalFieldValue).String() != "time.Time" {
+				encryptedValue := EncryptObjectID(originalFieldValue)
 
-			newField.SetString(encryptions.EncryptID(uint(originalField.Uint())))
+				// Ensure types match before setting
+				if reflect.TypeOf(encryptedValue) == newField.Type() {
+					newField.Set(reflect.ValueOf(encryptedValue))
+				}
+			} else {
+				newField.Set(originalField) // Copy time.Time fields as is
+			}
 		} else {
-			// Otherwise, copy the value as is
+			// Copy other fields as is
 			newField.Set(originalField)
 		}
 	}
@@ -95,20 +116,22 @@ func DecryptObjectID(data interface{}, target interface{}) interface{} {
 			continue
 		}
 
-		// If the field is named "ID" and is of type string, decrypt it
-		if strings.HasSuffix(originalFieldType.Name, "ID") && originalFieldType.Type.Kind() == reflect.String {
-			if newField.Kind() == reflect.Uint {
-				var decryptedID uint
+		// Handle nested structs
+		if originalField.Kind() == reflect.Struct && originalField.Type().String() != "time.Time" {
+			// Recursively decrypt nested structs
+			decryptedValue := DecryptObjectID(originalField.Interface(), reflect.New(newField.Type()).Interface())
 
-				if originalField.IsValid() && originalField.Kind() == reflect.String && originalField.String() != "" {
-					decryptedID = encryptions.DecryptID(originalField.String())
-				}
-
-				newField.SetUint(uint64(decryptedID))
-
+			// Ensure types match before setting
+			if reflect.TypeOf(decryptedValue) == newField.Type() {
+				newField.Set(reflect.ValueOf(decryptedValue))
+			}
+		} else if strings.HasSuffix(originalFieldType.Name, "ID") && originalFieldType.Type.Kind() == reflect.String {
+			// Decrypt fields ending with "ID"
+			if newField.Kind() == reflect.Uint && originalField.IsValid() && originalField.Kind() == reflect.String && originalField.String() != "" {
+				newField.SetUint(uint64(encryptions.DecryptID(originalField.String())))
 			}
 		} else {
-			// Otherwise, copy the value as is
+			// Copy other fields as is
 			newField.Set(originalField)
 		}
 	}

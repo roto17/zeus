@@ -108,9 +108,13 @@ func ViewProduct(c *gin.Context) {
 func GetProduct(id int) (interface{}, error) {
 
 	var user model_product.Product
-	result := database.DB.First(&user, id)
+
+	result := database.DB.Preload("Category").First(&user, id)
 	encryptedUser := encryptions.EncryptObjectID(user)
-	return encryptedUser, result.Error
+
+	decryptedUser := encryptions.DecryptObjectID(encryptedUser, &model_product.Product{}).(model_product.Product)
+
+	return decryptedUser, result.Error
 }
 
 func SaveQR(c *gin.Context) {

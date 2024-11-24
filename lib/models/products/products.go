@@ -28,9 +28,11 @@ type ProductInput struct {
 
 // Notification represents a notification message structure
 type ProductEncrypted struct {
-	ID          string `validate:"required" json:"id"`
-	Description string `validate:"required" json:"description"`
-	QRCode      string `validate:"required" json:"qr_code"`
-	CategoryID  string `validate:"required" json:"category_id"` // Foreign key to the User table
-	// Category    model_category.ProductCategory `json:"-"`             // Association to the User
+	ID          string                                  `validate:"required" json:"id"`
+	Description string                                  `validate:"required" json:"description"`
+	QRCode      string                                  `validate:"required" json:"qr_code"`
+	CategoryID  string                                  `validate:"required" json:"category_id"` // Foreign key to the User table
+	Category    model_category.ProductCategoryEncrypted `json:"-"`                               // Association to the User
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }

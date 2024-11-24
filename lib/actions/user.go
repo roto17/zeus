@@ -11,7 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/roto17/zeus/lib/config"
 	"github.com/roto17/zeus/lib/database"
-	encryptions "github.com/roto17/zeus/lib/encryption"
 	model_token "github.com/roto17/zeus/lib/models/tokens"
 	model_user "github.com/roto17/zeus/lib/models/users"
 	"github.com/roto17/zeus/lib/notifications"
@@ -262,8 +261,10 @@ func GetUser(id int) (interface{}, error) {
 
 	var user model_user.User
 	result := database.DB.First(&user, id)
-	encryptedUser := encryptions.EncryptObjectID(user)
-	return encryptedUser, result.Error
+	// encryptedUser := encryptions.EncryptObjectID(user)
+	// return encryptedUser, result.Error
+
+	return 1, result.Error
 }
 
 func SendVerificationEmail(userEmail, token, appBaseURL, smtpUser, smtpPass, smtpHost string, smtpPort int) error {
