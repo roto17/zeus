@@ -5,7 +5,6 @@ import (
 	"image/png"
 	"net/http"
 	"os"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/roto17/zeus/lib/database"
@@ -86,18 +85,25 @@ func AddProduct(c *gin.Context) {
 func ViewProduct(c *gin.Context) {
 	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
 
-	// Get the user ID from URL param
-	idParam := c.Param("id")
-	id, err := strconv.Atoi(idParam)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("invalid_id", "", requested_language)})
-		return
-	}
+	escapedID := utils.GetHeaderVarToString(c.Get("escapedID"))
+
+	idParam := utils.DecryptID(escapedID)
+
+	// // Get the user ID from URL param
+	// idParam := c.Param("id")
+
+	// fmt.Printf("------%v------", idParam)
+
+	// id, err := strconv.Atoi(idParam)
+	// if err != nil {
+	// 	c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("invalid_id", "", requested_language)})
+	// 	return
+	// }
 
 	// Use the GetUser function to fetch the user by ID
 	var user model_product.Product
 
-	result := database.DB.Preload("Category").First(&user, id)
+	result := database.DB.Preload("Category").First(&user, idParam)
 
 	if result.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
