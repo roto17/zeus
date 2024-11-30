@@ -25,6 +25,7 @@ func InitRouter(ctx context.Context) *gin.Engine {
 
 	// Apply middleware
 	router.Use(SetHeaderVariableMiddleware())
+	router.Use(SetEscapedID())
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"}, // Adjust to your needs
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
@@ -51,6 +52,7 @@ func InitRouter(ctx context.Context) *gin.Engine {
 
 		api.POST("/product_categories", JWTAuthMiddleware("admin"), actions.AddProductCategory)
 		api.PUT("/product_categories", JWTAuthMiddleware("admin"), actions.UpdateProductCategory)
+		api.GET("/product_categories/*path", JWTAuthMiddleware("admin"), actions.ViewProductCategory)
 		api.DELETE("/product_categories/:encrypted_id", JWTAuthMiddleware("admin"), actions.DeleteProductCategory)
 
 		api.POST("/products", JWTAuthMiddleware("admin"), actions.AddProduct)

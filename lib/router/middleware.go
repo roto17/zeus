@@ -3,6 +3,7 @@ package router
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -111,6 +112,31 @@ func SetHeaderVariableMiddleware() gin.HandlerFunc {
 		c.Set("requested_language", utils.Coalesce(c.GetHeader("Accept-Language"), "en"))
 		// Continue to the next handler
 		c.Next()
+	}
+}
+
+// Middleware to set a variable in the context
+func SetEscapedID() gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		rawPath := c.Param("path") // Extract the path parameter
+
+		// Ensure rawPath is not empty
+		if len(rawPath) == 0 || rawPath[0] != '/' {
+			c.JSON(400, gin.H{"error": "Invalid path"})
+			return
+		}
+
+		// Safely slice the rawPath
+		rawPath = rawPath[1:] // Remove the leading '/'
+
+		encodedPath := url.QueryEscape(rawPath)
+
+		// Set a variable in the context
+		c.Set("escapedID", encodedPath)
+		// Continue to the next handler
+		c.Next()
+
 	}
 }
 

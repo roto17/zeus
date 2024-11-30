@@ -95,31 +95,24 @@ func ViewProduct(c *gin.Context) {
 	}
 
 	// Use the GetUser function to fetch the user by ID
-	user, err := GetProduct(id)
-	if err != nil {
+	var user model_product.Product
+
+	result := database.DB.Preload("Category").First(&user, id)
+
+	if result.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
 		return
 	}
 
-	// Return the user
-	c.JSON(http.StatusOK, user)
-}
-
-func GetProduct(id int) (interface{}, error) {
-
-	var user model_product.Product
-
-	result := database.DB.Preload("Category").First(&user, id)
 	encryptedUser := encryptions.EncryptObjectID(user)
 
-	decryptedUser := encryptions.DecryptObjectID(encryptedUser, &model_product.Product{}).(model_product.Product)
+	// decryptedUser := encryptions.DecryptObjectID(encryptedUser, &model_product.Product{}).(model_product.Product)
 
-	return decryptedUser, result.Error
+	// Return the encryptedUser
+	c.JSON(http.StatusOK, encryptedUser)
 }
 
 func SaveQR(c *gin.Context) {
-
-	// content := utils.DecryptID("MohliEVNFgSvICs6HqhR+KMmxPmm9goeJwNSnt2EnA==")
 
 	content := "wwwwww"
 

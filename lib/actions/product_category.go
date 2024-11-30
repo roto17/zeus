@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -122,4 +123,63 @@ func DeleteProductCategory(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("delete_successfully", "", requested_language)})
+}
+
+// ViewUser handler
+func ViewProductCategory(c *gin.Context) {
+	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
+
+	// Get the user ID from URL param
+	// idParam := utils.DecryptID(c.Param("encrypted_id"))
+
+	// rawPath := c.Param("path") // Extract the path parameter
+
+	// // Ensure rawPath is not empty
+	// if len(rawPath) == 0 || rawPath[0] != '/' {
+	// 	c.JSON(400, gin.H{"error": "Invalid path"})
+	// 	return
+	// }
+
+	// // Safely slice the rawPath
+	// rawPath = rawPath[1:] // Remove the leading '/'
+
+	// encodedPath := url.QueryEscape(rawPath)
+	// if err != nil {
+	// 	c.JSON(400, gin.H{"error": "Invalid URL encoding"})
+	// 	return
+	// }
+
+	escapedID := utils.GetHeaderVarToString(c.Get("escapedID"))
+
+	// if err != true {
+	// 	c.JSON(http.StatusBadRequest, gin.H{"error": "test"})
+	// 	return
+	// }
+
+	fmt.Printf("-------%v------", escapedID)
+
+	idParam := utils.DecryptID(escapedID)
+
+	// id, err := strconv.Atoi(idParam)
+	// if err != nil {
+	// 	c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("invalid_id", "", requested_language)})
+	// 	return
+	// }
+
+	// Use the GetUser function to fetch the user by ID
+	var category model_product_category.ProductCategory
+
+	result := database.DB.First(&category, idParam)
+
+	if result.Error != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
+		return
+	}
+
+	encryptedCategory := encryptions.EncryptObjectID(category)
+
+	// // decryptedUser := encryptions.DecryptObjectID(encryptedUser, &model_product.Product{}).(model_product.Product)
+
+	// // Return the encryptedUser
+	c.JSON(http.StatusOK, encryptedCategory)
 }
