@@ -121,9 +121,12 @@ func SetEscapedID() gin.HandlerFunc {
 
 		rawPath := c.Param("path") // Extract the path parameter
 
+		fmt.Printf("-------%v-------", rawPath)
+
 		// Ensure rawPath is not empty
 		if len(rawPath) == 0 || rawPath[0] != '/' {
-			c.JSON(400, gin.H{"error": "Invalid path"})
+			fmt.Printf("Invalid path")
+			// c.JSON(400, gin.H{"error": "Invalid path"})
 			return
 		}
 

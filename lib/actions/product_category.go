@@ -99,12 +99,13 @@ func DeleteProductCategory(c *gin.Context) {
 	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
 	db := database.DB
 
-	// Get the category ID from the URL parameter
-	categoryID := utils.DecryptID(c.Param("encrypted_id"))
+	escapedID := utils.GetHeaderVarToString(c.Get("escapedID"))
+
+	idParam := utils.DecryptID(escapedID)
 
 	// Check if the category exists
 	var category model_product_category.ProductCategory
-	if err := db.First(&category, categoryID).Error; err != nil {
+	if err := db.First(&category, idParam).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
 		return
 	}

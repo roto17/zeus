@@ -65,57 +65,28 @@ func AddProduct(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("added_successfuly", "", requestedLanguage)})
 }
 
-// // AddProduct handles the creation of a new product
-// func UpdateProduct(c *gin.Context) {
-// 	requestedLanguage := utils.GetHeaderVarToString(c.Get("requested_language"))
-// 	// db := database.DB
-// 	var encryptedProduct model_product.ProductEncrypted
-// 	// var Product model_product.Product
-
-// 	// Bind the incoming JSON to the category struct
-// 	if err := c.ShouldBindJSON(&encryptedProduct); err != nil {
-// 		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("invalid_input", "", requested_language)})
-// 		return
-// 	}
-
-// 	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("updated_successfully", "", requestedLanguage)})
-// }
-
 // ViewUser handler
 func ViewProduct(c *gin.Context) {
 	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
-
 	escapedID := utils.GetHeaderVarToString(c.Get("escapedID"))
 
 	idParam := utils.DecryptID(escapedID)
 
-	// // Get the user ID from URL param
-	// idParam := c.Param("id")
+	var product model_product.Product
 
-	// fmt.Printf("------%v------", idParam)
-
-	// id, err := strconv.Atoi(idParam)
-	// if err != nil {
-	// 	c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("invalid_id", "", requested_language)})
-	// 	return
-	// }
-
-	// Use the GetUser function to fetch the user by ID
-	var user model_product.Product
-
-	result := database.DB.Preload("Category").First(&user, idParam)
+	result := database.DB.Preload("Category").First(&product, idParam)
 
 	if result.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
 		return
 	}
 
-	encryptedUser := encryptions.EncryptObjectID(user)
+	encryptedProduct := encryptions.EncryptObjectID(product)
 
-	// decryptedUser := encryptions.DecryptObjectID(encryptedUser, &model_product.Product{}).(model_product.Product)
+	// decryptedUser := encryptions.DecryptObjectID(encryptedProduct, &model_product.Product{}).(model_product.Product)
 
-	// Return the encryptedUser
-	c.JSON(http.StatusOK, encryptedUser)
+	// Return the encryptedProduct
+	c.JSON(http.StatusOK, encryptedProduct)
 }
 
 func SaveQR(c *gin.Context) {

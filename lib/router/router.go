@@ -41,27 +41,23 @@ func InitRouter(ctx context.Context) *gin.Engine {
 		// User-related routes
 		api.POST("/register", actions.Register)
 		api.POST("/login", RateLimitMiddleware(), actions.Login)
+		router.GET("/verify-email", actions.VerifyByMail)
+		api.GET("/view_user/:id", JWTAuthMiddleware("admin"), actions.ViewUser)
 		api.POST("/logout", actions.Logout)
 		api.POST("/logout-all", actions.LogoutAll)
 
-		// WebSocket route for notifications
-		api.GET("/notifications", notifications.WSHandler)
-
-		// Route for viewing a user by ID (Admin access only)
-		api.GET("/view_user/:id", JWTAuthMiddleware("admin"), actions.ViewUser)
-
-		api.POST("/product_categories", JWTAuthMiddleware("admin"), actions.AddProductCategory)
+		api.POST("/product_categories/*path", JWTAuthMiddleware("admin"), actions.AddProductCategory)
 		api.PUT("/product_categories", JWTAuthMiddleware("admin"), actions.UpdateProductCategory)
 		api.GET("/product_categories/*path", JWTAuthMiddleware("admin"), actions.ViewProductCategory)
-		api.DELETE("/product_categories/:encrypted_id", JWTAuthMiddleware("admin"), actions.DeleteProductCategory)
+		api.DELETE("/product_categories/*path", JWTAuthMiddleware("admin"), actions.DeleteProductCategory)
 
 		api.POST("/products", JWTAuthMiddleware("admin"), actions.AddProduct)
 		api.GET("/products/*path", JWTAuthMiddleware("admin"), actions.ViewProduct)
 
-		api.GET("/products", JWTAuthMiddleware("admin"), actions.SaveQR)
+		// api.GET("/products", JWTAuthMiddleware("admin"), actions.SaveQR)
 
-		// Other routes
-		router.GET("/verify-email", actions.VerifyByMail)
+		// WebSocket route for notifications
+		api.GET("/notifications", notifications.WSHandler)
 	}
 
 	// Handle undefined routes (still under the /api prefix)
