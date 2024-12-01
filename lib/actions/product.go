@@ -21,27 +21,36 @@ import (
 func AddProduct(c *gin.Context) {
 	requestedLanguage := utils.GetHeaderVarToString(c.Get("requested_language"))
 	db := database.DB
-	var productInput model_product.ProductInput
+	var productEncrypted model_product.ProductEncrypted
+
+	var product model_product.Product
 
 	// Bind the incoming JSON to the product struct
-	if err := c.ShouldBindJSON(&productInput); err != nil {
+	if err := c.ShouldBindJSON(&productEncrypted); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("invalid_input", "", requestedLanguage)})
 		return
 	}
 
+	product, ok := encryptions.DecryptObjectID(productEncrypted, &product).(model_product.Product)
+	if !ok {
+		panic("failed to assert type to Product")
+	}
+
 	// Find the user by username
 	var searched_category model_product_category.ProductCategory
-	if err := database.DB.Where("id = ?", productInput.CategoryID).First(&searched_category).Error; err != nil {
+	if err := database.DB.Where("id = ?", product.CategoryID).First(&searched_category).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "No mathcing Catgeory"})
 		return
 	}
 
 	productValidation := model_product.Product{
-		Description: productInput.Description,
-		QRCode:      productInput.QRCode,
-		CategoryID:  productInput.CategoryID,
+		Description: product.Description,
+		QRCode:      product.QRCode,
+		CategoryID:  product.CategoryID,
 		Category:    searched_category,
 	}
+
+	// fmt.Printf("------%v-----", product)
 
 	// Validate the incoming product data
 	validationErrors := utils.FieldValidationAll(productValidation, requestedLanguage)
@@ -51,7 +60,7 @@ func AddProduct(c *gin.Context) {
 	}
 
 	// Ensure CategoryID is set
-	if productInput.CategoryID == 0 {
+	if product.CategoryID == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("category_not_found", "", requestedLanguage)})
 		return
 	}

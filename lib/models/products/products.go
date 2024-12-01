@@ -17,11 +17,11 @@ type Product struct {
 	UpdatedAt   time.Time
 }
 
-type ProductInput struct {
-	// ID          uint   `json:"id"`
-	Description string `json:"description"`
-	QRCode      string `json:"qr_code"`
-	CategoryID  uint   `json:"category_id"` // Foreign key to the User table
+type ProductEncrypted struct {
+	ID          string `validate:"required" json:"id"`
+	Description string `validate:"required" json:"description"`
+	QRCode      string `validate:"required" json:"qr_code"`
+	CategoryID  string `validate:"required" json:"category_id"` // Foreign key to the User table
 	// CreatedAt   time.Time
 	// UpdatedAt   time.Time
 }
