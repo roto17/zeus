@@ -26,6 +26,7 @@ func InitRouter(ctx context.Context) *gin.Engine {
 	// Apply middleware
 	router.Use(SetHeaderVariableMiddleware())
 	router.Use(SetEscapedID())
+
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"}, // Adjust to your needs
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
@@ -46,13 +47,17 @@ func InitRouter(ctx context.Context) *gin.Engine {
 		api.POST("/logout", actions.Logout)
 		api.POST("/logout-all", actions.LogoutAll)
 
-		api.POST("/product_categories/*path", JWTAuthMiddleware("admin"), actions.AddProductCategory)
+		api.POST("/product_categories", JWTAuthMiddleware("admin"), actions.AddProductCategory)
 		api.PUT("/product_categories", JWTAuthMiddleware("admin"), actions.UpdateProductCategory)
 		api.GET("/product_categories/*path", JWTAuthMiddleware("admin"), actions.ViewProductCategory)
+		api.GET("/product_categories", JWTAuthMiddleware("admin"), actions.AllProductCategories)
 		api.DELETE("/product_categories/*path", JWTAuthMiddleware("admin"), actions.DeleteProductCategory)
 
 		api.POST("/products", JWTAuthMiddleware("admin"), actions.AddProduct)
+		api.PUT("/products", JWTAuthMiddleware("admin"), actions.UpdateProduct)
 		api.GET("/products/*path", JWTAuthMiddleware("admin"), actions.ViewProduct)
+		api.GET("/products", JWTAuthMiddleware("admin"), actions.AllProducts)
+		api.DELETE("/products/*path", JWTAuthMiddleware("admin"), actions.DeleteProduct)
 
 		// api.GET("/products", JWTAuthMiddleware("admin"), actions.SaveQR)
 

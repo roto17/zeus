@@ -146,3 +146,26 @@ func ViewProductCategory(c *gin.Context) {
 	// // Return the encryptedUser
 	c.JSON(http.StatusOK, encryptedCategory)
 }
+
+// ViewUser handler
+func AllProductCategories(c *gin.Context) {
+	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
+
+	var categories []model_product_category.ProductCategory
+
+	result := database.DB.Find(&categories)
+
+	if result.Error != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
+		return
+	}
+
+	encryptedCategories := make([]interface{}, len(categories))
+	for i, category := range categories {
+		encryptedCategory := encryptions.EncryptObjectID(category)
+		encryptedCategories[i] = encryptedCategory
+	}
+
+	// Return the list of encryptedProducts
+	c.JSON(http.StatusOK, encryptedCategories)
+}

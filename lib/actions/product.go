@@ -5,6 +5,7 @@ import (
 	"image/png"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/roto17/zeus/lib/database"
@@ -39,7 +40,7 @@ func AddProduct(c *gin.Context) {
 	// Find the user by username
 	var searched_category model_product_category.ProductCategory
 	if err := database.DB.Where("id = ?", product.CategoryID).First(&searched_category).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "No mathcing Catgeory"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("category_not_found", "", requestedLanguage)})
 		return
 	}
 
@@ -50,18 +51,10 @@ func AddProduct(c *gin.Context) {
 		Category:    searched_category,
 	}
 
-	// fmt.Printf("------%v-----", product)
-
 	// Validate the incoming product data
 	validationErrors := utils.FieldValidationAll(productValidation, requestedLanguage)
 	if validationErrors != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": validationErrors})
-		return
-	}
-
-	// Ensure CategoryID is set
-	if product.CategoryID == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("category_not_found", "", requestedLanguage)})
 		return
 	}
 
@@ -72,6 +65,86 @@ func AddProduct(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("added_successfuly", "", requestedLanguage)})
+}
+
+func UpdateProduct(c *gin.Context) {
+	requestedLanguage := utils.GetHeaderVarToString(c.Get("requested_language"))
+	db := database.DB
+	var productEncrypted model_product.ProductEncrypted
+
+	var product model_product.Product
+
+	// Bind the incoming JSON to the product struct
+	if err := c.ShouldBindJSON(&productEncrypted); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("invalid_input", "", requestedLanguage)})
+		return
+	}
+
+	product, ok := encryptions.DecryptObjectID(productEncrypted, &product).(model_product.Product)
+	if !ok {
+		panic("failed to assert type to Product")
+	}
+
+	// Find the user by username
+	var searched_category model_product_category.ProductCategory
+	if err := database.DB.Where("id = ?", product.CategoryID).First(&searched_category).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("category_not_found", "", requestedLanguage)})
+		return
+	}
+
+	productValidation := model_product.Product{
+		ID:          product.ID,
+		Description: product.Description,
+		QRCode:      product.QRCode,
+		CategoryID:  product.CategoryID,
+		Category:    searched_category,
+	}
+
+	// Validate the incoming product data
+	validationErrors := utils.FieldValidationAll(productValidation, requestedLanguage)
+	if validationErrors != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": validationErrors})
+		return
+	}
+
+	// Save the updated category to the database
+	if err := db.Save(&productValidation).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("faild_update", "", requestedLanguage)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("updated_successfully", "", requestedLanguage)})
+}
+
+// DeleteProductCategory deletes a product category by ID
+func DeleteProduct(c *gin.Context) {
+	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
+	db := database.DB
+
+	escapedID := utils.GetHeaderVarToString(c.Get("escapedID"))
+
+	idParam := utils.DecryptID(escapedID)
+
+	// Check if the category exists
+	var product model_product.Product
+	if err := db.First(&product, idParam).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
+		return
+	}
+
+	// Delete the category from the database
+	if err := db.Delete(&product).Error; err != nil {
+
+		if strings.Contains(err.Error(), "23503") {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("fk_issue", "", requested_language)})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("faild_deletion", "", requested_language)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("delete_successfully", "", requested_language)})
 }
 
 // ViewUser handler
@@ -96,6 +169,29 @@ func ViewProduct(c *gin.Context) {
 
 	// Return the encryptedProduct
 	c.JSON(http.StatusOK, encryptedProduct)
+}
+
+// ViewUser handler
+func AllProducts(c *gin.Context) {
+	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
+
+	var products []model_product.Product
+
+	result := database.DB.Preload("Category").Find(&products)
+
+	if result.Error != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
+		return
+	}
+
+	encryptedProducts := make([]interface{}, len(products))
+	for i, product := range products {
+		encryptedProduct := encryptions.EncryptObjectID(product)
+		encryptedProducts[i] = encryptedProduct
+	}
+
+	// Return the list of encryptedProducts
+	c.JSON(http.StatusOK, encryptedProducts)
 }
 
 func SaveQR(c *gin.Context) {
