@@ -194,15 +194,11 @@ func ViewProduct(c *gin.Context) {
 // 	c.JSON(http.StatusOK, encryptedProducts)
 // }
 
-// AllProducts handler
 func AllProducts(c *gin.Context) {
 	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
 
 	// Get pagination parameters from query
-	// page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	// limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-
-	page := 2
+	page := 1
 	limit := 8
 
 	if page < 1 {
@@ -215,14 +211,23 @@ func AllProducts(c *gin.Context) {
 	// Calculate offset
 	offset := (page - 1) * limit
 
+	// Get search query from query parameters
+	search := c.DefaultQuery("search", "")
+
 	var products []model_product.Product
 	var totalProducts int64
 
+	// Build base query with search filter
+	query := database.DB.Model(&model_product.Product{})
+	if search != "" {
+		query = query.Where("description ILIKE ?", "%"+search+"%") // Case-insensitive search
+	}
+
 	// Count total products
-	database.DB.Model(&model_product.Product{}).Count(&totalProducts)
+	query.Count(&totalProducts)
 
 	// Fetch products with pagination
-	result := database.DB.Preload("Category").
+	result := query.Preload("Category").
 		Limit(limit).
 		Offset(offset).
 		Find(&products)
@@ -263,6 +268,7 @@ func AllProducts(c *gin.Context) {
 
 	// Return paginated results
 	c.JSON(http.StatusOK, gin.H{
+		"count":    totalProducts,
 		"page":     page,
 		"limit":    limit,
 		"pages":    pages,
