@@ -46,9 +46,9 @@ func AddProduct(c *gin.Context) {
 
 	productValidation := model_product.Product{
 		Description: product.Description,
-		QRCode:      product.QRCode,
-		CategoryID:  product.CategoryID,
-		Category:    searched_category,
+		// QRCode:      product.QRCode,
+		CategoryID: product.CategoryID,
+		Category:   searched_category,
 	}
 
 	// Validate the incoming product data
@@ -95,9 +95,9 @@ func UpdateProduct(c *gin.Context) {
 	productValidation := model_product.Product{
 		ID:          product.ID,
 		Description: product.Description,
-		QRCode:      product.QRCode,
-		CategoryID:  product.CategoryID,
-		Category:    searched_category,
+		// QRCode:      product.QRCode,
+		CategoryID: product.CategoryID,
+		Category:   searched_category,
 	}
 
 	// Validate the incoming product data
@@ -268,14 +268,15 @@ func AllProducts(c *gin.Context) {
 
 	// Return paginated results
 	c.JSON(http.StatusOK, gin.H{
-		"count":    totalProducts,
-		"page":     page,
-		"limit":    limit,
-		"pages":    pages,
-		"next":     nextPage,
-		"previous": previousPage,
-		"products": encryptedProducts,
+		"a_page":     page,
+		"b_limit":    limit,
+		"c_previous": previousPage,
+		"d_pages":    pages,
+		"e_next":     nextPage,
+		"f_count":    totalProducts,
+		"h_data":     encryptedProducts,
 	})
+
 }
 
 func SaveQR(c *gin.Context) {

@@ -147,25 +147,84 @@ func ViewProductCategory(c *gin.Context) {
 	c.JSON(http.StatusOK, encryptedCategory)
 }
 
-// ViewUser handler
+// AllProductCategories handler
 func AllProductCategories(c *gin.Context) {
 	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
 
-	var categories []model_product_category.ProductCategory
+	// Get pagination parameters from query
+	page := 2
+	limit := 1
 
-	result := database.DB.Find(&categories)
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 10
+	}
+
+	// Calculate offset
+	offset := (page - 1) * limit
+
+	// Get search query from query parameters
+	search := c.DefaultQuery("search", "")
+
+	var categories []model_product_category.ProductCategory
+	var totalCategories int64
+
+	// Build base query with search filter
+	query := database.DB.Model(&model_product_category.ProductCategory{})
+	if search != "" {
+		query = query.Where("description ILIKE ?", "%"+search+"%") // Case-insensitive search for category names
+	}
+
+	// Count total categories
+	query.Count(&totalCategories)
+
+	// Fetch categories with pagination
+	result := query.Limit(limit).Offset(offset).Find(&categories)
 
 	if result.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
 		return
 	}
 
+	// Encrypt category IDs
 	encryptedCategories := make([]interface{}, len(categories))
 	for i, category := range categories {
 		encryptedCategory := encryptions.EncryptObjectID(category)
 		encryptedCategories[i] = encryptedCategory
 	}
 
-	// Return the list of encryptedProducts
-	c.JSON(http.StatusOK, encryptedCategories)
+	// Calculate total pages
+	totalPages := int((totalCategories + int64(limit) - 1) / int64(limit)) // Ceiling division for total pages
+
+	// Generate page numbers
+	pages := make([]int, totalPages)
+	for i := 0; i < totalPages; i++ {
+		pages[i] = i + 1
+	}
+
+	// Determine next and previous pages
+	var nextPage *int
+	if page < totalPages {
+		next := page + 1
+		nextPage = &next
+	}
+
+	var previousPage *int
+	if page > 1 {
+		prev := page - 1
+		previousPage = &prev
+	}
+
+	// Return paginated results
+	c.JSON(http.StatusOK, gin.H{
+		"a_page":     page,
+		"b_limit":    limit,
+		"c_previous": previousPage,
+		"d_pages":    pages,
+		"e_next":     nextPage,
+		"f_count":    totalCategories,
+		"h_data":     encryptedCategories,
+	})
 }
