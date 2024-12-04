@@ -2,6 +2,7 @@ package actions
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -152,8 +153,8 @@ func AllProductCategories(c *gin.Context) {
 	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
 
 	// Get pagination parameters from query
-	page := 2
-	limit := 1
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 
 	if page < 1 {
 		page = 1

@@ -121,17 +121,17 @@ func SetEscapedID() gin.HandlerFunc {
 
 		rawPath := c.Param("path") // Extract the path parameter
 
-		fmt.Printf("-------%v-------", rawPath)
-
-		// Ensure rawPath is not empty
-		if len(rawPath) == 0 || rawPath[0] != '/' {
-			fmt.Printf("Invalid path")
-			// c.JSON(400, gin.H{"error": "Invalid path"})
-			return
-		}
+		// // Ensure rawPath is not empty
+		// if len(rawPath) == 0 || rawPath[0] != '/' {
+		// 	fmt.Printf("Invalid path")
+		// 	// c.JSON(400, gin.H{"error": "Invalid path"})
+		// 	return
+		// }
 
 		// Safely slice the rawPath
-		rawPath = rawPath[1:] // Remove the leading '/'
+		if len(rawPath) != 0 && rawPath[0] == '/' {
+			rawPath = rawPath[1:] // Remove the leading '/'
+		}
 
 		encodedPath := url.QueryEscape(rawPath)
 

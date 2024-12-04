@@ -5,6 +5,7 @@ import (
 	"image/png"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -171,35 +172,14 @@ func ViewProduct(c *gin.Context) {
 	c.JSON(http.StatusOK, encryptedProduct)
 }
 
-// // ViewUser handler
-// func AllProducts(c *gin.Context) {
-// 	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
-
-// 	var products []model_product.Product
-
-// 	result := database.DB.Preload("Category").Find(&products)
-
-// 	if result.Error != nil {
-// 		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
-// 		return
-// 	}
-
-// 	encryptedProducts := make([]interface{}, len(products))
-// 	for i, product := range products {
-// 		encryptedProduct := encryptions.EncryptObjectID(product)
-// 		encryptedProducts[i] = encryptedProduct
-// 	}
-
-// 	// Return the list of encryptedProducts
-// 	c.JSON(http.StatusOK, encryptedProducts)
-// }
-
 func AllProducts(c *gin.Context) {
 	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
 
 	// Get pagination parameters from query
-	page := 1
-	limit := 8
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+	baseURL := c.Request.Host + c.Request.URL.Path
 
 	if page < 1 {
 		page = 1
@@ -266,13 +246,29 @@ func AllProducts(c *gin.Context) {
 		previousPage = &prev
 	}
 
+	nextPageUrl := ""
+	if nextPage != nil && *nextPage > 0 {
+		nextPageUrl = fmt.Sprintf("%v?page=%d&limit=%d", baseURL, *nextPage, limit)
+	} else {
+		nextPageUrl = "" // Or handle the case where there is no next page URL
+	}
+
+	previousPageUrl := ""
+	if previousPage != nil && *previousPage <= totalPages {
+		previousPageUrl = fmt.Sprintf("%v?page=%d&limit=%d", baseURL, *previousPage, limit)
+	} else {
+		previousPageUrl = "" // Or handle the case where there is no next page URL
+	}
+
+	fmt.Printf("------------%d-------------", nextPage)
+
 	// Return paginated results
 	c.JSON(http.StatusOK, gin.H{
 		"a_page":     page,
 		"b_limit":    limit,
-		"c_previous": previousPage,
+		"c_previous": gin.H{"index": previousPage, "url": previousPageUrl},
 		"d_pages":    pages,
-		"e_next":     nextPage,
+		"e_next":     gin.H{"index": nextPage, "url": nextPageUrl},
 		"f_count":    totalProducts,
 		"h_data":     encryptedProducts,
 	})
