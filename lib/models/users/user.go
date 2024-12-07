@@ -65,14 +65,14 @@ type LoginUserInput struct {
 // 	return nil
 // }
 
-// type EncryptedUser struct {
-// 	ID         string    `gorm:"-" json:"-"`
-// 	FirstName  string    `gorm:"-" json:"-"`
-// 	MiddleName string    `gorm:"-" json:"-"`
-// 	LastName   string    `gorm:"-" json:"-"`
-// 	Username   string    `gorm:"-" json:"-"`
-// 	Email      string    `gorm:"-" json:"-"`
-// 	Password   string    `gorm:"-" json:"-"`
-// 	Role       string    `gorm:"-" json:"-"`
-// 	VerifiedAt time.Time `gorm:"-" json:"-"`
-// }
+type EncryptedUser struct {
+	ID         string    `gorm:"-" json:"id"`
+	FirstName  string    `gorm:"-" json:"first_name"`  // Max 50 characters
+	MiddleName string    `gorm:"-" json:"middle_name"` // Optional, max 50 characters
+	LastName   string    `gorm:"-"  json:"last_name"`  // Max 50 characters
+	Username   string    `gorm:"-"  json:"username"`   // Max 255 characters
+	Email      string    `gorm:"-"  json:"email"`      // Unique and valid email
+	Password   string    `gorm:"-"  json:"-"`          // Max 255 characters
+	Role       string    `gorm:"-"  json:"role"`       // Max 50 characters
+	VerifiedAt time.Time `gorm:"-" json:"verified_at,omitempty"`
+}

@@ -41,9 +41,10 @@ func InitRouter(ctx context.Context) *gin.Engine {
 	{
 		// User-related routes
 		api.POST("/register", actions.Register)
+		api.PUT("/update_user", JWTAuthMiddleware("admin"), actions.UpdateUser)
 		api.POST("/login", RateLimitMiddleware(), actions.Login)
 		router.GET("/verify-email", actions.VerifyByMail)
-		api.GET("/view_user/:id", JWTAuthMiddleware("admin"), actions.ViewUser)
+		api.GET("/view_user/*path", JWTAuthMiddleware("admin"), actions.ViewUser)
 		api.POST("/logout", actions.Logout)
 		api.POST("/logout-all", actions.LogoutAll)
 

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
+	"gopkg.in/gomail.v2"
 
 	"github.com/roto17/zeus/lib/database"
 	"github.com/roto17/zeus/lib/logs"
@@ -119,4 +120,39 @@ func getOneOfTagValue(model interface{}, fieldName string) string {
 	}
 
 	return ""
+}
+
+func SendVerificationEmail(userEmail, token, appBaseURL, smtpUser, smtpPass, smtpHost string, smtpPort int) error {
+	// Create the verification URL
+	verificationURL := fmt.Sprintf("%s/verify-email?signature=%s", appBaseURL, token)
+
+	// Email content
+	subject := "Email Verification"
+	// body := fmt.Sprintf("Please click the following link to verify your email: %s", verificationURL)
+
+	// HTML version of the email body
+	htmlBody := fmt.Sprintf(`
+		<html>
+			<body>
+				<p>Please click the following link to verify your email:</p>
+				<a href="%s">Verify Email</a>
+			</body>
+		</html>`, verificationURL)
+
+	// Set up the email message
+	message := gomail.NewMessage()
+	message.SetHeader("From", smtpUser)
+	message.SetHeader("To", userEmail)
+	message.SetHeader("Subject", subject)
+	message.SetBody("text/html", htmlBody) // plain text
+	// message.AddAlternative("text/html", htmlBody) // HTML version
+
+	// Set up the SMTP dialer
+	dialer := gomail.NewDialer(smtpHost, smtpPort, smtpUser, smtpPass)
+
+	// Send the email
+	if err := dialer.DialAndSend(message); err != nil {
+		return err
+	}
+	return nil
 }

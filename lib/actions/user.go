@@ -1,9 +1,7 @@
 package actions
 
 import (
-	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -11,12 +9,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/roto17/zeus/lib/config"
 	"github.com/roto17/zeus/lib/database"
+	encryptions "github.com/roto17/zeus/lib/encryption"
 	model_token "github.com/roto17/zeus/lib/models/tokens"
 	model_user "github.com/roto17/zeus/lib/models/users"
 	"github.com/roto17/zeus/lib/notifications"
 	"github.com/roto17/zeus/lib/translation" // Assuming translation package handles translations
 	"github.com/roto17/zeus/lib/utils"
-	"gopkg.in/gomail.v2"
 )
 
 // Register handles registration
@@ -80,7 +78,7 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	if err := SendVerificationEmail(user.Email, token, config.GetEnv("appBaseURL"), config.GetEnv("smtpUser"), config.GetEnv("smtpPass"), config.GetEnv("smtpHost"), utils.StringToInt((config.GetEnv("smtpPort")))); err != nil {
+	if err := utils.SendVerificationEmail(user.Email, token, config.GetEnv("appBaseURL"), config.GetEnv("smtpUser"), config.GetEnv("smtpPass"), config.GetEnv("smtpHost"), utils.StringToInt((config.GetEnv("smtpPort")))); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("failed_to_send_verification_email", "", requested_language)})
 		return
 	}
@@ -234,72 +232,74 @@ func LogoutAll(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("logout_successful", "", requested_language)})
 }
 
-// ViewUser handler
+// ViewProduct handler
 func ViewUser(c *gin.Context) {
 	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
+	escapedID := utils.GetHeaderVarToString(c.Get("escapedID"))
 
-	// Get the user ID from URL param
-	idParam := c.Param("id")
-	id, err := strconv.Atoi(idParam)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("invalid_id", "", requested_language)})
-		return
-	}
+	idParam := utils.DecryptID(escapedID)
 
-	// Use the GetUser function to fetch the user by ID
-	user, err := GetUser(id)
-	if err != nil {
+	var user model_user.User
+
+	result := database.DB.First(&user, idParam)
+
+	if result.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
 		return
 	}
 
-	// Return the user
-	c.JSON(http.StatusOK, user)
+	encryptedUser := encryptions.EncryptObjectID(user)
+
+	// decryptedUser := encryptions.DecryptObjectID(encryptedProduct, &model_product.Product{}).(model_product.Product)
+
+	// Return the encryptedProduct
+	c.JSON(http.StatusOK, encryptedUser)
 }
 
-func GetUser(id int) (interface{}, error) {
-
+// Update Category
+func UpdateUser(c *gin.Context) {
+	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
+	db := database.DB
+	var encryptedUser model_user.EncryptedUser
 	var user model_user.User
-	result := database.DB.First(&user, id)
-	// encryptedUser := encryptions.EncryptObjectID(user)
-	// return encryptedUser, result.Error
 
-	return 1, result.Error
-}
-
-func SendVerificationEmail(userEmail, token, appBaseURL, smtpUser, smtpPass, smtpHost string, smtpPort int) error {
-	// Create the verification URL
-	verificationURL := fmt.Sprintf("%s/verify-email?signature=%s", appBaseURL, token)
-
-	// Email content
-	subject := "Email Verification"
-	// body := fmt.Sprintf("Please click the following link to verify your email: %s", verificationURL)
-
-	// HTML version of the email body
-	htmlBody := fmt.Sprintf(`
-		<html>
-			<body>
-				<p>Please click the following link to verify your email:</p>
-				<a href="%s">Verify Email</a>
-			</body>
-		</html>`, verificationURL)
-
-	// Set up the email message
-	message := gomail.NewMessage()
-	message.SetHeader("From", smtpUser)
-	message.SetHeader("To", userEmail)
-	message.SetHeader("Subject", subject)
-	message.SetBody("text/html", htmlBody) // plain text
-	// message.AddAlternative("text/html", htmlBody) // HTML version
-
-	// Set up the SMTP dialer
-	dialer := gomail.NewDialer(smtpHost, smtpPort, smtpUser, smtpPass)
-
-	// Send the email
-	if err := dialer.DialAndSend(message); err != nil {
-		return err
+	// Bind the incoming JSON to the category struct
+	if err := c.ShouldBindJSON(&encryptedUser); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("invalid_input", "", requested_language)})
+		return
 	}
-	return nil
+
+	user, ok := encryptions.DecryptObjectID(encryptedUser, &user).(model_user.User)
+	if !ok {
+		panic("failed to assert type to ProductCategory")
+	}
+
+	// Fetch the existing category by ID
+	var existingUser model_user.User
+	if err := db.First(&existingUser, user.ID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
+		return
+	}
+
+	// Update fields from the input
+	existingUser.FirstName = user.FirstName
+	existingUser.Email = user.Email
+	existingUser.Username = user.Username
+
+	// Validate and get translated error messages
+	validationErrors := utils.FieldValidationAll(existingUser, requested_language)
+	if validationErrors != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": validationErrors})
+		return
+	}
+
+	// Save the updated category to the database
+	if err := db.Save(&existingUser).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("faild_update", "", requested_language)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("updated_successfully", "", requested_language)})
 }
 
 // VerifyByMail handles email verification
