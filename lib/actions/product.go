@@ -5,7 +5,6 @@ import (
 	"image/png"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -176,20 +175,7 @@ func AllProducts(c *gin.Context) {
 	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
 
 	// Get pagination parameters from query
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-
-	baseURL := c.Request.Host + c.Request.URL.Path
-
-	if page < 1 {
-		page = 1
-	}
-	if limit < 1 {
-		limit = 10
-	}
-
-	// Calculate offset
-	offset := (page - 1) * limit
+	limit, offset := utils.GetPaginationParams(c)
 
 	// Get search query from query parameters
 	search := c.DefaultQuery("search", "")
@@ -224,55 +210,15 @@ func AllProducts(c *gin.Context) {
 		encryptedProducts[i] = encryptedProduct
 	}
 
-	// Calculate total pages
-	totalPages := int((totalProducts + int64(limit) - 1) / int64(limit)) // Ceiling division for total pages
-
-	// Generate page numbers
-	pages := make([]int, totalPages)
-	for i := 0; i < totalPages; i++ {
-		pages[i] = i + 1
-	}
-
-	// Determine next and previous pages
-	var nextPage *int
-	if page < totalPages {
-		next := page + 1
-		nextPage = &next
-	}
-
-	var previousPage *int
-	if page > 1 {
-		prev := page - 1
-		previousPage = &prev
-	}
-
-	nextPageUrl := ""
-	if nextPage != nil && *nextPage > 0 {
-		nextPageUrl = fmt.Sprintf("%v?page=%d&limit=%d", baseURL, *nextPage, limit)
-	} else {
-		nextPageUrl = "" // Or handle the case where there is no next page URL
-	}
-
-	previousPageUrl := ""
-	if previousPage != nil && *previousPage <= totalPages {
-		previousPageUrl = fmt.Sprintf("%v?page=%d&limit=%d", baseURL, *previousPage, limit)
-	} else {
-		previousPageUrl = "" // Or handle the case where there is no next page URL
-	}
-
-	fmt.Printf("------------%d-------------", nextPage)
+	// Generate pagination metadata
+	baseURL := fmt.Sprintf("http://%s%s", c.Request.Host, c.Request.URL.Path)
+	pagination := utils.GetPaginationMetadata(c, baseURL, totalProducts, limit)
 
 	// Return paginated results
 	c.JSON(http.StatusOK, gin.H{
-		"a_page":     page,
-		"b_limit":    limit,
-		"c_previous": gin.H{"index": previousPage, "url": previousPageUrl},
-		"d_pages":    pages,
-		"e_next":     gin.H{"index": nextPage, "url": nextPageUrl},
-		"f_count":    totalProducts,
-		"h_data":     encryptedProducts,
+		"pagination": pagination,
+		"data":       encryptedProducts,
 	})
-
 }
 
 func SaveQR(c *gin.Context) {
