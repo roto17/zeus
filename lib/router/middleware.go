@@ -135,6 +135,10 @@ func SetEscapedID() gin.HandlerFunc {
 
 		encodedPath := url.QueryEscape(rawPath)
 
+		// if encodedPath == "" {
+		// 	encodedPath = "A"
+		// }
+
 		// Set a variable in the context
 		c.Set("escapedID", encodedPath)
 		// Continue to the next handler

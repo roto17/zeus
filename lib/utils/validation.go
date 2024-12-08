@@ -156,3 +156,36 @@ func SendVerificationEmail(userEmail, token, appBaseURL, smtpUser, smtpPass, smt
 	}
 	return nil
 }
+
+// type TwilioConfig struct {
+// 	AccountSID string
+// 	AuthToken  string
+// 	FromNumber string
+// }
+
+// func SendSMS() error {
+
+// 	accountSid := "ACdaa6c8500198d8beffdd811844f14d75"
+// 	authToken := "a8020f6379f14a396ea1bbad41f0c644"
+
+// 	client := twilio.NewRestClientWithParams(twilio.ClientParams{
+// 		Username: accountSid,
+// 		Password: authToken,
+// 	})
+
+// 	params := &twilioApi.CreateMessageParams{}
+// 	params.SetTo("+212634894766")
+// 	params.SetFrom("+17856293009")
+// 	params.SetBody("Hello from Go!")
+
+// 	resp, err := client.Api.CreateMessage(params)
+// 	if err != nil {
+// 		fmt.Println("Error sending SMS message: " + err.Error())
+// 	} else {
+// 		response, _ := json.Marshal(*resp)
+// 		fmt.Println("Response: " + string(response))
+// 	}
+
+// 	return nil
+
+// }

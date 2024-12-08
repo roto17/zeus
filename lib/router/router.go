@@ -40,13 +40,17 @@ func InitRouter(ctx context.Context) *gin.Engine {
 	api := router.Group("/api")
 	{
 		// User-related routes
-		api.POST("/register", actions.Register)
-		api.PUT("/update_user", JWTAuthMiddleware("admin"), actions.UpdateUser)
+		api.POST("/users", actions.Register)
+		api.PUT("/users", JWTAuthMiddleware("admin", "super_admin"), actions.UpdateUser)
+		api.GET("/users", JWTAuthMiddleware("super_admin"), actions.AllUsers)
+		api.DELETE("/users/*path", JWTAuthMiddleware("super_admin"), actions.DeleteUser)
 		api.POST("/login", RateLimitMiddleware(), actions.Login)
 		router.GET("/verify-email", actions.VerifyByMail)
-		api.GET("/view_user/*path", JWTAuthMiddleware("admin"), actions.ViewUser)
-		api.POST("/logout", actions.Logout)
-		api.POST("/logout-all", actions.LogoutAll)
+		api.GET("/users/*path", JWTAuthMiddleware("admin", "super_admin"), actions.ViewUser)
+		api.POST("/logout", JWTAuthMiddleware("admin", "super_admin"), actions.Logout)
+		api.POST("/logout-all", JWTAuthMiddleware("admin", "super_admin"), actions.LogoutAll)
+
+		// api.GET("/verify_sms", JWTAuthMiddleware("admin", "super_admin"), actions.VerifyBySMS)
 
 		api.POST("/product_categories", JWTAuthMiddleware("admin"), actions.AddProductCategory)
 		api.PUT("/product_categories", JWTAuthMiddleware("admin"), actions.UpdateProductCategory)

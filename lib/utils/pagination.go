@@ -44,9 +44,12 @@ func GetPaginationMetadata(c *gin.Context, baseURL string, totalItems int64, lim
 	totalPages := int(math.Ceil(float64(totalItems) / float64(limit)))
 
 	// Generate page numbers
-	pageNumbers := make([]int, totalPages)
+	pageNumbers := make([]model_pagination.PageInfo, totalPages)
 	for i := 0; i < totalPages; i++ {
-		pageNumbers[i] = i + 1
+		pageNumbers[i] = model_pagination.PageInfo{
+			Index:    i + 1,
+			Page_url: fmt.Sprintf("%s?page=%d&limit=%d", baseURL, i+1, limit),
+		}
 	}
 
 	// Determine next and previous pages
@@ -74,14 +77,14 @@ func GetPaginationMetadata(c *gin.Context, baseURL string, totalItems int64, lim
 	}
 
 	return model_pagination.PaginationMetadata{
-		A_CurrentPage:       page,
-		B_Limit:             limit,
-		C_TotalItems:        totalItems,
-		D_TotalPages:        totalPages,
-		E_NextPageIndex:     nextPageIndex,
-		F_NextPageURL:       nextPageURL,
-		G_PreviousPageIndex: previousPageIndex,
-		H_PreviousPageURL:   previousPageURL,
-		I_PageNumbers:       pageNumbers,
+		A_CurrentPage: page,
+		B_Limit:       limit,
+		C_TotalItems:  totalItems,
+		D_TotalPages:  totalPages,
+		// G_PreviousPageIndex: previousPageIndex,
+		H_PreviousPageURL: previousPageURL,
+		// E_NextPageIndex:     nextPageIndex,
+		F_NextPageURL: nextPageURL,
+		I_Pages:       pageNumbers,
 	}
 }

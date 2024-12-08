@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -16,6 +17,15 @@ import (
 	"github.com/roto17/zeus/lib/translation" // Assuming translation package handles translations
 	"github.com/roto17/zeus/lib/utils"
 )
+
+// // Register handles registration
+// func VerifyBySMS(c *gin.Context) {
+
+// 	utils.SendSMS()
+
+// 	c.JSON(http.StatusOK, "MSG SENT")
+
+// }
 
 // Register handles registration
 func Register(c *gin.Context) {
@@ -296,6 +306,85 @@ func UpdateUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("updated_successfully", "", requested_language)})
+}
+
+// DeleteUser deletes a product category by ID
+func DeleteUser(c *gin.Context) {
+	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
+	db := database.DB
+
+	escapedID := utils.GetHeaderVarToString(c.Get("escapedID"))
+
+	idParam := utils.DecryptID(escapedID)
+
+	// Check if the user exists
+	var user model_user.User
+	if err := db.First(&user, idParam).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
+		return
+	}
+
+	// Delete the user from the database
+	if err := db.Delete(&user).Error; err != nil {
+
+		if strings.Contains(err.Error(), "23503") {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("fk_issue", "", requested_language)})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("faild_deletion", "", requested_language)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("delete_successfully", "", requested_language)})
+}
+
+// AllUsers handler
+func AllUsers(c *gin.Context) {
+	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
+
+	// Get pagination parameters from query
+	limit, offset := utils.GetPaginationParams(c)
+
+	// Get search query from query parameters
+	search := c.DefaultQuery("search", "")
+
+	var users []model_user.User
+	var totalUsers int64
+
+	// Build base query with search filter
+	query := database.DB.Model(&model_user.User{})
+	if search != "" {
+		query = query.Where("first_name ILIKE ?", "%"+search+"%") // Case-insensitive search for category names
+	}
+
+	// Count total categories
+	query.Count(&totalUsers)
+
+	// Fetch categories with pagination
+	result := query.Limit(limit).Offset(offset).Find(&users)
+
+	if result.Error != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
+		return
+	}
+
+	// Encrypt category IDs
+	encryptedUsers := make([]interface{}, len(users))
+	for i, user := range users {
+		encryptedUser := encryptions.EncryptObjectID(user)
+		encryptedUsers[i] = encryptedUser
+	}
+
+	// Generate pagination metadata
+	baseURL := fmt.Sprintf("http://%s%s", c.Request.Host, c.Request.URL.Path)
+	pagination := utils.GetPaginationMetadata(c, baseURL, totalUsers, limit)
+
+	// Return paginated results
+	c.JSON(http.StatusOK, gin.H{
+		"pagination": pagination,
+		"data":       encryptedUsers,
+	})
 }
 
 // VerifyByMail handles email verification

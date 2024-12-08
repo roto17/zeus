@@ -122,30 +122,38 @@ func EncryptID(id uint) string {
 // DecryptID decrypts the encrypted string to retrieve the original integer ID
 func DecryptID(encryptedID string) uint {
 
+	if encryptedID == "" {
+		return 0
+	}
+
 	// URL decode the string
 	decodedStr, err := url.QueryUnescape(encryptedID)
 	if err != nil {
 		// Handle error if decoding fails
 		fmt.Println("Error decoding:", err)
+		return 0
 	}
 
 	// Decode the base64-encoded string
 	ciphertext, err := base64.StdEncoding.DecodeString(decodedStr)
 	if err != nil {
-		fmt.Printf("test %v", err)
+		fmt.Printf("%v", err)
+		return 0
 	}
 
 	// Create a new AES cipher with the provided key
 	block, err := aes.NewCipher([]byte(config.GetEnv("encryption_key")))
 	if err != nil {
 		fmt.Printf("error key %v", err)
+		return 0
 	}
 
 	// Generate a new GCM cipher based on AES
 	aesGCM, err := cipher.NewGCM(block)
 	if err != nil {
 		// return 0, err
-		fmt.Printf("test %v", err)
+		fmt.Printf("%v", err)
+		return 0
 	}
 
 	// Split the nonce and the actual ciphertext
@@ -156,7 +164,7 @@ func DecryptID(encryptedID string) uint {
 	idBytes, err := aesGCM.Open(nil, nonce, ciphertext, nil)
 	if err != nil {
 		// return 0, err
-		fmt.Printf("tes %v", err)
+		fmt.Printf("%v", err)
 	}
 
 	// Convert the decrypted bytes back to an integer
