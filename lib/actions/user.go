@@ -30,39 +30,28 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	user := model_user.User{
-		Email:      new_user.Email,
-		FirstName:  new_user.FirstName,
-		LastName:   new_user.LastName,
-		Username:   new_user.Username,
-		Password:   new_user.Password,
-		Role:       new_user.Role,
-		VerifiedAt: new_user.VerifiedAt,
-		MiddleName: new_user.MiddleName,
-	}
-
-	// Validate and get translated error messages
-	validationErrors := utils.FieldValidationAll(user, requested_language)
-	if validationErrors != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": validationErrors})
-		return
-	}
-
 	// Hash the user's password
-	hashedPassword, err := utils.HashPassword(user.Password)
+	hashedPassword, err := utils.HashPassword(new_user.Password)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("password_hashing_failed", "", requested_language)})
 		return
 	}
 
 	newUser := model_user.User{
-		Email:      user.Email,
-		FirstName:  user.FirstName,
-		LastName:   user.LastName,
-		Username:   user.Username,
+		Email:      new_user.Email,
+		FirstName:  new_user.FirstName,
+		LastName:   new_user.LastName,
+		Username:   new_user.Username,
 		Password:   hashedPassword,
-		Role:       user.Role,
-		MiddleName: user.MiddleName,
+		Role:       new_user.Role,
+		MiddleName: new_user.MiddleName,
+	}
+
+	// Validate and get translated error messages
+	validationErrors := utils.FieldValidationAll(newUser, requested_language)
+	if validationErrors != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": validationErrors})
+		return
 	}
 
 	// Save the user in the database
@@ -78,7 +67,7 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	if err := utils.SendVerificationEmail(user.Email, token, config.GetEnv("appBaseURL"), config.GetEnv("smtpUser"), config.GetEnv("smtpPass"), config.GetEnv("smtpHost"), utils.StringToInt((config.GetEnv("smtpPort")))); err != nil {
+	if err := utils.SendVerificationEmail(newUser.Email, token, config.GetEnv("appBaseURL"), config.GetEnv("smtpUser"), config.GetEnv("smtpPass"), config.GetEnv("smtpHost"), utils.StringToInt((config.GetEnv("smtpPort")))); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("failed_to_send_verification_email", "", requested_language)})
 		return
 	}
@@ -275,16 +264,23 @@ func UpdateUser(c *gin.Context) {
 	}
 
 	// Fetch the existing category by ID
-	var existingUser model_user.User
+	var existingUser model_user.UserUpdateModel
 	if err := db.First(&existingUser, user.ID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
 		return
 	}
 
+	hashedPassword, err := utils.HashPassword(user.Password)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("password_hashing_failed", "", requested_language)})
+		return
+	}
+
 	// Update fields from the input
 	existingUser.FirstName = user.FirstName
-	existingUser.Email = user.Email
-	existingUser.Username = user.Username
+	existingUser.MiddleName = user.MiddleName
+	existingUser.LastName = user.LastName
+	existingUser.Password = hashedPassword
 
 	// Validate and get translated error messages
 	validationErrors := utils.FieldValidationAll(existingUser, requested_language)
@@ -351,6 +347,7 @@ func VerifyByMail(c *gin.Context) {
 	}
 
 	user.VerifiedAt = time.Now()
+	user.VerifiedMethod = "Mail"
 
 	if err := database.DB.Save(&user).Error; err != nil {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"error": translation.GetTranslation("update_verification_date_failed", "", requestedLanguage)})

@@ -7,7 +7,7 @@ import (
 	"github.com/roto17/zeus/lib/migrations"
 )
 
-func main2() {
+func main() {
 
 	config.LoadConfig()
 	database.InitDB()
