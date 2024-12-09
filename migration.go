@@ -12,6 +12,8 @@ func main() {
 	config.LoadConfig()
 	database.InitDB()
 
+	migrations.MigrateCompany()
+
 	migrations.MigrateNotification()
 	migrations.MigrateUser()
 	migrations.MigrateToken()

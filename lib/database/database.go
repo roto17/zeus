@@ -27,6 +27,12 @@ func InitDB() {
 	)
 	var err error
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+
+	// DB.Callback().Query().Before("gorm:query").Register("disable_auto_preload", func(db *gorm.DB) {
+	// 	// Disable all preloads
+	// 	db.Statement.Preloads = map[string][]interface{}{}
+	// })
+
 	if err != nil {
 		logs.AddLog("Fatal", "roto", fmt.Sprintf("Failed to connect to the database:%s", err))
 	} else {

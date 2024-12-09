@@ -25,7 +25,7 @@ func HashPassword(password string) (string, error) {
 // GenerateToken generates a JWT for the authenticated user
 func GenerateToken(user model_user.User) (string, error) {
 	// Set expiration time
-	expirationTime := time.Now().Add(time.Hour * 24) // Token expires in 24 hours
+	expirationTime := time.Now().Add(time.Hour * 24 * 30) // Token expires in 24 hours
 
 	// Create token claims including the role and expiration time
 	claims := jwt.MapClaims{

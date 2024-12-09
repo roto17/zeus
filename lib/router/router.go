@@ -42,11 +42,18 @@ func InitRouter(ctx context.Context) *gin.Engine {
 		// User-related routes
 		api.POST("/users", actions.Register)
 		api.PUT("/users", JWTAuthMiddleware("admin", "super_admin"), actions.UpdateUser)
+		api.GET("/users/*path", JWTAuthMiddleware("admin", "super_admin"), actions.ViewUser)
 		api.GET("/users", JWTAuthMiddleware("super_admin"), actions.AllUsers)
 		api.DELETE("/users/*path", JWTAuthMiddleware("super_admin"), actions.DeleteUser)
+
+		api.POST("/companies", actions.AddCompany)
+		api.PUT("/companies", actions.UpdateCompany)
+		api.GET("/companies/*path", actions.ViewCompany)
+		api.GET("/companies", actions.AllCompanies)
+		api.DELETE("/companies/*path", actions.DeleteCompany)
+
 		api.POST("/login", RateLimitMiddleware(), actions.Login)
 		router.GET("/verify-email", actions.VerifyByMail)
-		api.GET("/users/*path", JWTAuthMiddleware("admin", "super_admin"), actions.ViewUser)
 		api.POST("/logout", JWTAuthMiddleware("admin", "super_admin"), actions.Logout)
 		api.POST("/logout-all", JWTAuthMiddleware("admin", "super_admin"), actions.LogoutAll)
 

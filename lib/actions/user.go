@@ -1,7 +1,6 @@
 package actions
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -255,7 +254,7 @@ func ViewUser(c *gin.Context) {
 	c.JSON(http.StatusOK, encryptedUser)
 }
 
-// Update Category
+// Update User
 func UpdateUser(c *gin.Context) {
 	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
 	db := database.DB
@@ -270,7 +269,7 @@ func UpdateUser(c *gin.Context) {
 
 	user, ok := encryptions.DecryptObjectID(encryptedUser, &user).(model_user.User)
 	if !ok {
-		panic("failed to assert type to ProductCategory")
+		panic("failed to assert type to User")
 	}
 
 	// Fetch the existing category by ID
@@ -377,8 +376,7 @@ func AllUsers(c *gin.Context) {
 	}
 
 	// Generate pagination metadata
-	baseURL := fmt.Sprintf("http://%s%s", c.Request.Host, c.Request.URL.Path)
-	pagination := utils.GetPaginationMetadata(c, baseURL, totalUsers, limit)
+	pagination := utils.GetPaginationMetadata(c, totalUsers, limit)
 
 	// Return paginated results
 	c.JSON(http.StatusOK, gin.H{

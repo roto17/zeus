@@ -1,7 +1,6 @@
 package actions
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -38,12 +37,8 @@ func AddProductCategory(c *gin.Context) {
 		return
 	}
 
-	validatedCategory := model_product_category.ProductCategory{
-		Description: newCategory.Description,
-	}
-
 	// Save the user in the database
-	if err := db.Create(&validatedCategory).Error; err != nil {
+	if err := db.Create(&newCategory).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("faild_addition", "", requested_language)})
 		return
 	}
@@ -186,8 +181,7 @@ func AllProductCategories(c *gin.Context) {
 	}
 
 	// Generate pagination metadata
-	baseURL := fmt.Sprintf("http://%s%s", c.Request.Host, c.Request.URL.Path)
-	pagination := utils.GetPaginationMetadata(c, baseURL, totalCategories, limit)
+	pagination := utils.GetPaginationMetadata(c, totalCategories, limit)
 
 	// Return paginated results
 	c.JSON(http.StatusOK, gin.H{

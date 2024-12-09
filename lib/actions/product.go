@@ -12,6 +12,7 @@ import (
 	encryptions "github.com/roto17/zeus/lib/encryption"
 	"github.com/skip2/go-qrcode"
 
+	model_company "github.com/roto17/zeus/lib/models/companies"
 	model_product_category "github.com/roto17/zeus/lib/models/productcategories"
 	model_product "github.com/roto17/zeus/lib/models/products"
 	"github.com/roto17/zeus/lib/translation" // Assuming translation package handles translations
@@ -36,6 +37,14 @@ func AddProduct(c *gin.Context) {
 	if !ok {
 		panic("failed to assert type to Product")
 	}
+	fmt.Printf("------------------%v--------------------", product)
+
+	// Find the user by username
+	var searched_company model_company.Company
+	if err := database.DB.Where("id = ?", product.CompanyID).First(&searched_company).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("company_not_found", "", requestedLanguage)})
+		return
+	}
 
 	// Find the user by username
 	var searched_category model_product_category.ProductCategory
@@ -46,9 +55,10 @@ func AddProduct(c *gin.Context) {
 
 	productValidation := model_product.Product{
 		Description: product.Description,
-		// QRCode:      product.QRCode,
-		CategoryID: product.CategoryID,
-		Category:   searched_category,
+		CompanyID:   product.CompanyID,
+		Company:     searched_company,
+		CategoryID:  product.CategoryID,
+		Category:    searched_category,
 	}
 
 	// Validate the incoming product data
@@ -147,7 +157,7 @@ func DeleteProduct(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("delete_successfully", "", requested_language)})
 }
 
-// ViewUser handler
+// ViewProduct handler
 func ViewProduct(c *gin.Context) {
 	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
 	escapedID := utils.GetHeaderVarToString(c.Get("escapedID"))
@@ -194,6 +204,7 @@ func AllProducts(c *gin.Context) {
 
 	// Fetch products with pagination
 	result := query.Preload("Category").
+		Preload("Company").
 		Limit(limit).
 		Offset(offset).
 		Find(&products)
@@ -211,8 +222,7 @@ func AllProducts(c *gin.Context) {
 	}
 
 	// Generate pagination metadata
-	baseURL := fmt.Sprintf("http://%s%s", c.Request.Host, c.Request.URL.Path)
-	pagination := utils.GetPaginationMetadata(c, baseURL, totalProducts, limit)
+	pagination := utils.GetPaginationMetadata(c, totalProducts, limit)
 
 	// Return paginated results
 	c.JSON(http.StatusOK, gin.H{

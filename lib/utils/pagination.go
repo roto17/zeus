@@ -28,7 +28,11 @@ func GetPaginationParams(c *gin.Context) (limitVal int, offsetVal int) {
 	return limit, offset
 }
 
-func GetPaginationMetadata(c *gin.Context, baseURL string, totalItems int64, limit int) model_pagination.PaginationMetadata {
+func GetPaginationMetadata(c *gin.Context, totalItems int64, limit int) model_pagination.PaginationMetadata {
+
+	// Generate pagination metadata
+	baseURL := fmt.Sprintf("http://%s%s", c.Request.Host, c.Request.URL.Path)
+
 	// Get page from query or default to 1
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	if page < 1 {

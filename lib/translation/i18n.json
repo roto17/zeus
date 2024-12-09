@@ -34,7 +34,8 @@
     "updated_successfully": "The record has been updated successfully.",
     "failed_delete": "Failed to delete the record. Please try again.",
     "delete_successfully": "The record has been deleted successfully.",
-    "fk_issue":"This item is associated with other records and cannot be deleted or updated. Please modify or remove the related records first."
+    "fk_issue":"This item is associated with other records and cannot be deleted or updated. Please modify or remove the related records first.",
+    "company_not_found": "The requested company could not be found."
   },
   "fr": {
     "required_header": "L'en-tête d'autorisation est requis",
@@ -71,6 +72,7 @@
     "updated_successfully": "L'enregistrement a été mis à jour avec succès.",
     "failed_delete": "Échec de la suppression de l'enregistrement. Veuillez réessayer.",
     "delete_successfully": "L'enregistrement a été supprimé avec succès.",
-    "fk_issue":"Cet élément est associé à d'autres enregistrements et ne peut pas être supprimé ou mis à jour. Veuillez d'abord modifier ou supprimer les enregistrements liés."
+    "fk_issue":"Cet élément est associé à d'autres enregistrements et ne peut pas être supprimé ou mis à jour. Veuillez d'abord modifier ou supprimer les enregistrements liés.",
+    "company_not_found": "La société demandée est introuvable."
   }
 }
