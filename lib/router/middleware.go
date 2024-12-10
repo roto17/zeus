@@ -74,6 +74,7 @@ func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 			return
 		}
 
+		c.Set("user", claims)
 		userId := claims["user_id"].(string)
 		userRole := claims["role"].(string)
 

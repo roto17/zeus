@@ -10,9 +10,9 @@ import (
 	"github.com/roto17/zeus/lib/config"
 	"github.com/roto17/zeus/lib/database"
 	encryptions "github.com/roto17/zeus/lib/encryption"
+	model_company "github.com/roto17/zeus/lib/models/companies"
 	model_token "github.com/roto17/zeus/lib/models/tokens"
 	model_user "github.com/roto17/zeus/lib/models/users"
-	"github.com/roto17/zeus/lib/notifications"
 	"github.com/roto17/zeus/lib/translation" // Assuming translation package handles translations
 	"github.com/roto17/zeus/lib/utils"
 )
@@ -31,18 +31,31 @@ func Register(c *gin.Context) {
 
 	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
 	db := database.DB
-	var new_user model_user.CreateUserInput
+	var encryptedUser model_user.EncryptedUser
+
+	var new_user model_user.User
 
 	// Bind the incoming JSON to the user struct
-	if err := c.ShouldBindJSON(&new_user); err != nil {
+	if err := c.ShouldBindJSON(&encryptedUser); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("invalid_input", "", requested_language)})
 		return
+	}
+
+	new_user, ok := encryptions.DecryptObjectID(encryptedUser, &new_user).(model_user.User)
+	if !ok {
+		panic("failed to assert type to User")
 	}
 
 	// Hash the user's password
 	hashedPassword, err := utils.HashPassword(new_user.Password)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("password_hashing_failed", "", requested_language)})
+		return
+	}
+
+	var searched_company model_company.Company
+	if err := database.DB.Where("id = ?", new_user.CompanyID).First(&searched_company).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("company_not_found", "", requested_language)})
 		return
 	}
 
@@ -54,6 +67,8 @@ func Register(c *gin.Context) {
 		Password:   hashedPassword,
 		Role:       new_user.Role,
 		MiddleName: new_user.MiddleName,
+		CompanyID:  new_user.CompanyID,
+		Company:    searched_company,
 	}
 
 	// Validate and get translated error messages
@@ -81,8 +96,8 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	toRoles := []string{"admin", "manager", "user"}
-	notifications.Notify(newUser.Username, newUser.Role, strings.Join(toRoles, ","), "added success!") // Call the RegisterUser function to send a notification
+	// toRoles := []string{"admin", "manager", "user"}
+	// notifications.Notify(newUser.Username, newUser.Role, strings.Join(toRoles, ","), "added success!") // Call the RegisterUser function to send a notification
 
 	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("registration_completed", "", requested_language)})
 
@@ -239,7 +254,7 @@ func ViewUser(c *gin.Context) {
 
 	var user model_user.User
 
-	result := database.DB.First(&user, idParam)
+	result := database.DB.Preload("Company").First(&user, idParam)
 
 	if result.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
@@ -279,17 +294,25 @@ func UpdateUser(c *gin.Context) {
 		return
 	}
 
+	var searched_company model_company.Company
+	if err := database.DB.Where("id = ?", user.CompanyID).First(&searched_company).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("company_not_found", "", requested_language)})
+		return
+	}
+
 	hashedPassword, err := utils.HashPassword(user.Password)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("password_hashing_failed", "", requested_language)})
 		return
 	}
-
+	// to check !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	// Update fields from the input
 	existingUser.FirstName = user.FirstName
 	existingUser.MiddleName = user.MiddleName
 	existingUser.LastName = user.LastName
 	existingUser.Password = hashedPassword
+	existingUser.CompanyID = user.CompanyID
+	existingUser.Company = searched_company
 
 	// Validate and get translated error messages
 	validationErrors := utils.FieldValidationAll(existingUser, requested_language)

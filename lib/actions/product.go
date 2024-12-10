@@ -37,7 +37,7 @@ func AddProduct(c *gin.Context) {
 	if !ok {
 		panic("failed to assert type to Product")
 	}
-	fmt.Printf("------------------%v--------------------", product)
+	// fmt.Printf("------------------%v--------------------", product)
 
 	// Find the user by username
 	var searched_company model_company.Company
@@ -198,6 +198,10 @@ func AllProducts(c *gin.Context) {
 	if search != "" {
 		query = query.Where("description ILIKE ?", "%"+search+"%") // Case-insensitive search
 	}
+
+	// user, _ := c.Get("user")
+
+	// fmt.Printf("---------%v---------", user)
 
 	// Count total products
 	query.Count(&totalProducts)
