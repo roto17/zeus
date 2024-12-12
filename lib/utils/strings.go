@@ -4,6 +4,10 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/roto17/zeus/lib/sharedkeys"
 )
 
 func Coalesce(values ...string) string {
@@ -51,4 +55,14 @@ func GetTheOriginalIPAddressFromForwarded(IPS string) string {
 		originalIP = strings.TrimSpace(ipList[0]) // Take the first IP
 	}
 	return originalIP
+}
+
+func ExtractUserDetails(c *gin.Context) (jwt.MapClaims, error) {
+	// user is already a map[string]interface{}, no need to assert it to jwt.MapClaims
+
+	usr, _ := c.Get(sharedkeys.UserKey)
+
+	claims, _ := usr.(jwt.MapClaims)
+
+	return claims, nil
 }

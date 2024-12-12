@@ -1,7 +1,9 @@
 package models
 
 import (
+	"errors"
 	"time"
+
 	// "gorm.io/gorm"
 	model_company "github.com/roto17/zeus/lib/models/companies"
 )
@@ -55,19 +57,27 @@ type EncryptedUser struct {
 
 type UserUpdateModel struct {
 	ID             uint                  `gorm:"primaryKey"`
-	FirstName      string                `gorm:"type:varchar(50)"`                 // Max 50 characters
-	MiddleName     string                `gorm:"type:varchar(50)"`                 // Optional, max 50 characters
-	LastName       string                `gorm:"type:varchar(50)"`                 // Max 50 characters
-	Username       string                `gorm:"type:varchar(255)"`                // Max 255 characters
-	Email          string                `gorm:"type:varchar(255)"`                // Unique and valid email
-	Password       string                `gorm:"type:varchar(255)"`                // Max 255 characters
-	Role           string                `gorm:"type:varchar(50)"`                 // Max 50 characters
-	CompanyID      uint                  `gorm:"not null;index" json:"company_id"` // Foreign key to the Category table
+	FirstName      string                `gorm:"type:varchar(50)"`  // Max 50 characters
+	MiddleName     string                `gorm:"type:varchar(50)"`  // Optional, max 50 characters
+	LastName       string                `gorm:"type:varchar(50)"`  // Max 50 characters
+	Username       string                `gorm:"type:varchar(255)"` // Max 255 characters
+	Email          string                `gorm:"type:varchar(255)"` // Unique and valid email
+	Password       string                `gorm:"type:varchar(255)"` // Max 255 characters
+	Role           string                `gorm:"type:varchar(50)"`  // Max 50 characters
+	CompanyID      uint                  `gorm:"not null;index"`    // Foreign key to the Category table
 	Company        model_company.Company `gorm:"foreignKey:CompanyID"`
 	VerifiedAt     time.Time             `gorm:"type:timestamp"`
-	VerifiedMethod string                `gorm:"-" json:"verified_method,omitempty"`
+	VerifiedMethod string                `gorm:"type:varchar(50)"`
 }
 
 func (UserUpdateModel) TableName() string {
 	return "users" // Replace this with your desired table name
+}
+
+// ValidateCompanyID checks if the provided company ID matches the user's company ID
+func (u *User) ValidateCompanyID(companyID uint) error {
+	if u.CompanyID != companyID {
+		return errors.New("company ID does not match")
+	}
+	return nil
 }

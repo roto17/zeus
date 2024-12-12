@@ -1,11 +1,13 @@
 package actions
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
+
 	"github.com/gin-gonic/gin"
 	"github.com/roto17/zeus/lib/config"
 	"github.com/roto17/zeus/lib/database"
@@ -254,6 +256,10 @@ func ViewUser(c *gin.Context) {
 
 	var user model_user.User
 
+	usr2, _ := utils.ExtractUserDetails(c)
+	// fmt.Printf("User Map: %#v\n", usr2)
+	fmt.Printf("------------%v-----------", usr2["user_id"])
+
 	result := database.DB.Preload("Company").First(&user, idParam)
 
 	if result.Error != nil {
@@ -305,7 +311,7 @@ func UpdateUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("password_hashing_failed", "", requested_language)})
 		return
 	}
-	// to check !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 	// Update fields from the input
 	existingUser.FirstName = user.FirstName
 	existingUser.MiddleName = user.MiddleName
@@ -384,7 +390,7 @@ func AllUsers(c *gin.Context) {
 	query.Count(&totalUsers)
 
 	// Fetch categories with pagination
-	result := query.Limit(limit).Offset(offset).Find(&users)
+	result := query.Limit(limit).Offset(offset).Preload("Company").Find(&users)
 
 	if result.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})

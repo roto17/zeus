@@ -29,10 +29,11 @@ func GenerateToken(user model_user.User) (string, error) {
 
 	// Create token claims including the role and expiration time
 	claims := jwt.MapClaims{
-		"user_id":  fmt.Sprintf("%v", user.ID),
-		"username": user.Username,
-		"role":     user.Role,
-		"exp":      expirationTime.Unix(),
+		"user_id":    fmt.Sprintf("%v", user.ID),
+		"username":   user.Username,
+		"role":       user.Role,
+		"company_id": fmt.Sprintf("%v", user.CompanyID),
+		"exp":        expirationTime.Unix(),
 		// "verified": !user.VerifiedAt.IsZero(),
 	}
 

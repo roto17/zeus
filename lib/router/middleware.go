@@ -8,14 +8,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/roto17/zeus/lib/config"
 	"github.com/roto17/zeus/lib/database"
 	model_token "github.com/roto17/zeus/lib/models/tokens"
+	"github.com/roto17/zeus/lib/sharedkeys"
 	"github.com/roto17/zeus/lib/translation"
 	"github.com/roto17/zeus/lib/utils"
 	"golang.org/x/time/rate"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 )
 
@@ -74,7 +75,11 @@ func JWTAuthMiddleware(allowedRoles ...string) gin.HandlerFunc {
 			return
 		}
 
-		c.Set("user", claims)
+		c.Set(sharedkeys.UserKey, claims)
+
+		// fmt.Printf("Claims being set: %#v\n", claims)
+
+		// c.Set("user", claims)
 		userId := claims["user_id"].(string)
 		userRole := claims["role"].(string)
 
