@@ -15,8 +15,8 @@ type Product struct {
 	CategoryID uint                           `gorm:"not null;index" json:"category_id"` // Foreign key to the Category table
 	Category   model_category.ProductCategory `gorm:"foreignKey:CategoryID"`             // Association to the Category
 
-	CompanyID uint                  `gorm:"not null;index" json:"company_id"` // Foreign key to the Category table
-	Company   model_company.Company `gorm:"foreignKey:CompanyID"`
+	CompanyID uint                   `gorm:"not null;index" json:"company_id"` // Foreign key to the Category table
+	Company   *model_company.Company `gorm:"foreignKey:CompanyID"`
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -42,3 +42,7 @@ type ProductEncrypted struct {
 // 	CreatedAt   time.Time
 // 	UpdatedAt   time.Time
 // }
+
+func (p *Product) GetCompany() *model_company.Company {
+	return p.Company
+}

@@ -16,3 +16,8 @@ type CompanyEncrypted struct {
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
+
+// Define an interface that models with a Company field must implement
+type CompanyProvider interface {
+	GetCompany() *Company
+}

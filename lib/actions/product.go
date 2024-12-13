@@ -56,7 +56,7 @@ func AddProduct(c *gin.Context) {
 	productValidation := model_product.Product{
 		Description: product.Description,
 		CompanyID:   product.CompanyID,
-		Company:     searched_company,
+		Company:     &searched_company,
 		CategoryID:  product.CategoryID,
 		Category:    searched_category,
 	}
@@ -166,11 +166,24 @@ func ViewProduct(c *gin.Context) {
 
 	var product model_product.Product
 
-	result := database.DB.Preload("Category").First(&product, idParam)
+	result := database.DB.Preload("Category").
+		Preload("Company").
+		First(&product, idParam)
 
 	if result.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
 		return
+	}
+
+	isMatching, err := utils.IsCompanyIDMatching(&product, utils.GetCompanyIDFromGinClaims(c))
+	if err != nil {
+		fmt.Println("Error:", err)
+	} else {
+		if !isMatching {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "You don't have enough provieleg to see this"})
+			return
+		}
+		// fmt.Println("User Company ID match:", isMatching)
 	}
 
 	encryptedProduct := encryptions.EncryptObjectID(product)

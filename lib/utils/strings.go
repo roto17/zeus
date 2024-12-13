@@ -57,12 +57,35 @@ func GetTheOriginalIPAddressFromForwarded(IPS string) string {
 	return originalIP
 }
 
-func ExtractUserDetails(c *gin.Context) (jwt.MapClaims, error) {
-	// user is already a map[string]interface{}, no need to assert it to jwt.MapClaims
+// GetCompanyIDFromGinClaims retrieves the company ID from the user's claims stored in Gin context.
+func GetCompanyIDFromGinClaims(c *gin.Context) uint {
+	// Retrieve user from the Gin context
+	user, exists := c.Get(sharedkeys.UserKey)
+	if !exists {
+		fmt.Printf("User claims do not exist\n")
+		return 0
+	}
 
-	usr, _ := c.Get(sharedkeys.UserKey)
+	// Assert user to jwt.MapClaims
+	claims, ok := user.(jwt.MapClaims)
+	if !ok {
+		fmt.Printf("Failed to assert User to jwt.MapClaims\n")
+		return 0
+	}
 
-	claims, _ := usr.(jwt.MapClaims)
+	// Retrieve and convert company_id from claims
+	companyIDStr, ok := claims["company_id"].(string)
+	if !ok {
+		fmt.Printf("company_id claim is not a string\n")
+		return 0
+	}
 
-	return claims, nil
+	// Convert company_id string to uint
+	companyID, err := strconv.Atoi(companyIDStr)
+	if err != nil {
+		fmt.Printf("Failed to convert company_id from string to integer: %s\n", err)
+		return 0
+	}
+
+	return uint(companyID)
 }
