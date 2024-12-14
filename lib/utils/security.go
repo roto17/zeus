@@ -5,7 +5,6 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -177,22 +176,31 @@ func DecryptID(encryptedID string) uint {
 }
 
 // IsCompanyIDMatching checks if the provided company ID matches the model's company ID.
-func IsCompanyIDMatching(entity models.CompanyProvider, companyID uint) (bool, error) {
+func IsCompanyIDMatching(entity models.CompanyProvider, companyID uint) bool {
 	// Get the company from the model
 	company := entity.GetCompany()
 
 	// Handle case when Company is nil
 	if company == nil {
-		return false, errors.New("entity is not associated with any company")
+		fmt.Printf("entity is not associated with any company")
+		return false
 	}
 
 	// Handle case when CompanyID is 0
 	if company.ID == 0 {
-		return false, errors.New("company has no valid ID")
+		fmt.Printf("company has no valid ID")
+		return false
 	}
 
 	// result := company.ID == companyID
 
 	// Compare the company IDs
-	return company.ID == companyID, nil
+	return company.ID == companyID
 }
+
+// // FilterByCompanyID is a reusable GORM scope to filter by company_id
+// func FilterByCompanyID(companyID uint) func(db *gorm.DB) *gorm.DB {
+// 	return func(db *gorm.DB) *gorm.DB {
+// 		return db.Where("company_id = ?", companyID)
+// 	}
+// }

@@ -1,7 +1,6 @@
 package actions
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -256,24 +255,21 @@ func ViewUser(c *gin.Context) {
 
 	var user model_user.User
 
-	result := database.DB.Preload("Company").First(&user, idParam)
+	result := database.DB.
+		Scopes(model_user.FilterByCompanyID(utils.GetCompanyIDFromGinClaims(c))).
+		Preload("Company").First(&user, idParam)
 
 	if result.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
 		return
 	}
 
-	isMatching, err := utils.IsCompanyIDMatching(&user, utils.GetCompanyIDFromGinClaims(c))
+	// isMatching := utils.IsCompanyIDMatching(&user, utils.GetCompanyIDFromGinClaims(c))
 
-	if err != nil {
-		fmt.Println("Error:", err)
-	} else {
-		if !isMatching {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "You don't have enough provieleg to see this"})
-			return
-		}
-		// fmt.Println("User Company ID match:", isMatching)
-	}
+	// if !isMatching {
+	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("Insufficient_permissions", "", requested_language)})
+	// 	return
+	// }
 
 	encryptedUser := encryptions.EncryptObjectID(user)
 
@@ -390,6 +386,7 @@ func AllUsers(c *gin.Context) {
 
 	// Build base query with search filter
 	query := database.DB.Model(&model_user.User{})
+	query = query.Scopes(model_user.FilterByCompanyID(utils.GetCompanyIDFromGinClaims(c)))
 	if search != "" {
 		query = query.Where("first_name ILIKE ?", "%"+search+"%") // Case-insensitive search for category names
 	}

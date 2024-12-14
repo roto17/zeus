@@ -1,6 +1,10 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 // Notification represents a notification message structure
 type Company struct {
@@ -20,4 +24,18 @@ type CompanyEncrypted struct {
 // Define an interface that models with a Company field must implement
 type CompanyProvider interface {
 	GetCompany() *Company
+	// FilterByCompanyID() *gorm.DB
+	FilterByCompanyID(db *gorm.DB, companyID uint) *gorm.DB
 }
+
+// func FilterByCompanyID(companyID uint) func(db *gorm.DB) *gorm.DB {
+// 	return func(db *gorm.DB) *gorm.DB {
+// 		return db.Where("company_id = ?", companyID)
+// 	}
+// }
+
+// func FilterByCompanyID(companyID uint) func(db *gorm.DB) *gorm.DB {
+// 	return func(db *gorm.DB) *gorm.DB {
+// 		return db.Where("company_id = ?", companyID)
+// 	}
+// }

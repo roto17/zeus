@@ -5,6 +5,7 @@ import (
 
 	model_company "github.com/roto17/zeus/lib/models/companies"
 	model_category "github.com/roto17/zeus/lib/models/productcategories"
+	"gorm.io/gorm"
 )
 
 // Notification represents a notification message structure
@@ -45,4 +46,11 @@ type ProductEncrypted struct {
 
 func (p *Product) GetCompany() *model_company.Company {
 	return p.Company
+}
+
+// Define a scope for filtering by company_id
+func FilterByCompanyID(companyID uint) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("company_id = ?", companyID)
+	}
 }

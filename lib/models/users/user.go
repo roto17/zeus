@@ -5,6 +5,7 @@ import (
 
 	// "gorm.io/gorm"
 	model_company "github.com/roto17/zeus/lib/models/companies"
+	"gorm.io/gorm"
 )
 
 type User struct {
@@ -73,18 +74,13 @@ func (UserUpdateModel) TableName() string {
 	return "users" // Replace this with your desired table name
 }
 
-// func (u *User) IsCompanyIDMatching(companyID uint) (bool, error) {
-
-// 	if u.CompanyID == 0 {
-// 		return false, errors.New("user is not associated with any company")
-// 	}
-
-// 	fmt.Printf("----comparison-------%v----------%v------", u.CompanyID, companyID)
-
-// 	return u.CompanyID == companyID, nil
-// }
-
 // Implement the GetCompany method for Product
 func (u *User) GetCompany() *model_company.Company {
 	return u.Company
+}
+
+func FilterByCompanyID(companyID uint) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("company_id = ?", companyID)
+	}
 }

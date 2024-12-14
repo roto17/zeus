@@ -166,7 +166,9 @@ func ViewProduct(c *gin.Context) {
 
 	var product model_product.Product
 
-	result := database.DB.Preload("Category").
+	result := database.DB.
+		Scopes(model_product.FilterByCompanyID(utils.GetCompanyIDFromGinClaims(c))).
+		Preload("Category").
 		Preload("Company").
 		First(&product, idParam)
 
@@ -175,16 +177,14 @@ func ViewProduct(c *gin.Context) {
 		return
 	}
 
-	isMatching, err := utils.IsCompanyIDMatching(&product, utils.GetCompanyIDFromGinClaims(c))
-	if err != nil {
-		fmt.Println("Error:", err)
-	} else {
-		if !isMatching {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "You don't have enough provieleg to see this"})
-			return
-		}
-		// fmt.Println("User Company ID match:", isMatching)
-	}
+	// isMatching := utils.IsCompanyIDMatching(&product, utils.GetCompanyIDFromGinClaims(c))
+
+	// if !isMatching {
+	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("Insufficient_permissions", "", requested_language)})
+
+	// 	return
+	// }
+	// fmt.Println("User Company ID match:", isMatching)
 
 	encryptedProduct := encryptions.EncryptObjectID(product)
 
@@ -208,13 +208,10 @@ func AllProducts(c *gin.Context) {
 
 	// Build base query with search filter
 	query := database.DB.Model(&model_product.Product{})
+	query = query.Scopes(model_product.FilterByCompanyID(utils.GetCompanyIDFromGinClaims(c)))
 	if search != "" {
 		query = query.Where("description ILIKE ?", "%"+search+"%") // Case-insensitive search
 	}
-
-	// user, _ := c.Get("user")
-
-	// fmt.Printf("---------%v---------", user)
 
 	// Count total products
 	query.Count(&totalProducts)
