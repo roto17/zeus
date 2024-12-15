@@ -69,7 +69,7 @@ func Register(c *gin.Context) {
 		Role:       new_user.Role,
 		MiddleName: new_user.MiddleName,
 		CompanyID:  new_user.CompanyID,
-		Company:    &searched_company,
+		Company:    searched_company,
 	}
 
 	// Validate and get translated error messages
@@ -256,7 +256,7 @@ func ViewUser(c *gin.Context) {
 	var user model_user.User
 
 	result := database.DB.
-		Scopes(model_user.FilterByCompanyID(utils.GetCompanyIDFromGinClaims(c))).
+		Scopes(model_user.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
 		Preload("Company").First(&user, idParam)
 
 	if result.Error != nil {
@@ -264,7 +264,7 @@ func ViewUser(c *gin.Context) {
 		return
 	}
 
-	// isMatching := utils.IsCompanyIDMatching(&user, utils.GetCompanyIDFromGinClaims(c))
+	// isMatching := utils.IsCompanyIDMatching(&user, utils.GetParamIDFromGinClaims(c))
 
 	// if !isMatching {
 	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("Insufficient_permissions", "", requested_language)})
@@ -299,13 +299,13 @@ func UpdateUser(c *gin.Context) {
 
 	// Fetch the existing category by ID
 	var existingUser model_user.UserUpdateModel
-	if err := db.First(&existingUser, user.ID).Error; err != nil {
+	if err := db.Scopes(model_user.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).First(&existingUser, user.ID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
 		return
 	}
 
 	var searched_company model_company.Company
-	if err := database.DB.Where("id = ?", user.CompanyID).First(&searched_company).Error; err != nil {
+	if err := database.DB.Scopes(model_company.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).Where("id = ?", user.CompanyID).First(&searched_company).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("company_not_found", "", requested_language)})
 		return
 	}
@@ -322,7 +322,7 @@ func UpdateUser(c *gin.Context) {
 	existingUser.LastName = user.LastName
 	existingUser.Password = hashedPassword
 	existingUser.CompanyID = user.CompanyID
-	existingUser.Company = &searched_company
+	existingUser.Company = searched_company
 
 	// Validate and get translated error messages
 	validationErrors := utils.FieldValidationAll(existingUser, requested_language)
@@ -386,7 +386,7 @@ func AllUsers(c *gin.Context) {
 
 	// Build base query with search filter
 	query := database.DB.Model(&model_user.User{})
-	query = query.Scopes(model_user.FilterByCompanyID(utils.GetCompanyIDFromGinClaims(c)))
+	query = query.Scopes(model_user.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id")))
 	if search != "" {
 		query = query.Where("first_name ILIKE ?", "%"+search+"%") // Case-insensitive search for category names
 	}

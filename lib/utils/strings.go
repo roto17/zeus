@@ -58,7 +58,7 @@ func GetTheOriginalIPAddressFromForwarded(IPS string) string {
 }
 
 // GetCompanyIDFromGinClaims retrieves the company ID from the user's claims stored in Gin context.
-func GetCompanyIDFromGinClaims(c *gin.Context) uint {
+func GetParamIDFromGinClaims(c *gin.Context, param string) uint {
 	// Retrieve user from the Gin context
 	user, exists := c.Get(sharedkeys.UserKey)
 	if !exists {
@@ -74,18 +74,18 @@ func GetCompanyIDFromGinClaims(c *gin.Context) uint {
 	}
 
 	// Retrieve and convert company_id from claims
-	companyIDStr, ok := claims["company_id"].(string)
+	paramIDStr, ok := claims[param].(string)
 	if !ok {
-		fmt.Printf("company_id claim is not a string\n")
+		fmt.Printf("%s claim is not a string\n", param)
 		return 0
 	}
 
 	// Convert company_id string to uint
-	companyID, err := strconv.Atoi(companyIDStr)
+	paramID, err := strconv.Atoi(paramIDStr)
 	if err != nil {
-		fmt.Printf("Failed to convert company_id from string to integer: %s\n", err)
+		fmt.Printf("Failed to convert %s from string to integer: %s\n", err, param)
 		return 0
 	}
 
-	return uint(companyID)
+	return uint(paramID)
 }

@@ -26,6 +26,8 @@ func ValidateStruct(model interface{}, language string) []model_validation.Valid
 	// fmt.Printf("%s", model.(model_user.User).Password)
 	// fmt.Printf("**************\n")
 
+	fmt.Printf("---err----------%v----------------\n", err)
+
 	if err != nil {
 		for _, fieldErr := range err.(validator.ValidationErrors) {
 			// Get the translated error message

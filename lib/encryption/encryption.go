@@ -23,20 +23,34 @@ func EncryptObjectID(data interface{}) interface{} {
 
 	// Iterate through the fields of the original struct
 	for i := 0; i < originalType.NumField(); i++ {
+
 		field := originalType.Field(i)
 		fieldType := field.Type
 
-		if fieldType.Kind() == reflect.Struct && fieldType.String() != "time.Time" {
-			// If the field is a struct (not time.Time), recursively modify its fields
-			subFields := EncryptObjectID(reflect.New(fieldType).Elem().Interface())
+		// If the field is a nested struct, handle it recursively
+		if fieldType.Kind() == reflect.Struct {
 
-			fields = append(fields, reflect.StructField{
-				Name: field.Name,
-				Type: reflect.TypeOf(subFields), // Set the type of the nested struct
-				Tag:  field.Tag,
-			})
+			if fieldType.String() != "time.Time" {
+				// Recursively modify nested structs
+
+				subFields := EncryptObjectID(reflect.New(fieldType).Elem().Interface())
+
+				// Append the field with the updated type of the nested struct
+				fields = append(fields, reflect.StructField{
+					Name: field.Name,
+					Type: reflect.TypeOf(subFields), // Set the type of the nested struct
+					Tag:  field.Tag,
+				})
+
+			} else {
+
+				// Copy the time.Time field as is
+				fields = append(fields, field)
+			}
+
 		} else if strings.HasSuffix(field.Name, "ID") && fieldType.Kind() == reflect.Uint {
 			// Modify fields ending with "ID" of type uint to string
+
 			fields = append(fields, reflect.StructField{
 				Name: field.Name,
 				Type: reflect.TypeOf(""), // Change type to string
@@ -57,8 +71,9 @@ func EncryptObjectID(data interface{}) interface{} {
 		originalField := originalValue.Field(i)
 		newField := newStruct.Field(i)
 
-		// Handle "ID" fields
+		// Handle "ID" fields: Encrypt them
 		if strings.HasSuffix(fields[i].Name, "ID") && fields[i].Type.Kind() == reflect.String {
+			// Encrypt the ID field and set it
 			newField.SetString(utils.EncryptID(uint(originalField.Uint())))
 		} else if fields[i].Type.Kind() == reflect.Struct {
 			// Recursively handle nested structs
@@ -71,7 +86,8 @@ func EncryptObjectID(data interface{}) interface{} {
 					newField.Set(reflect.ValueOf(encryptedValue))
 				}
 			} else {
-				newField.Set(originalField) // Copy time.Time fields as is
+				// Copy time.Time fields as is
+				newField.Set(originalField)
 			}
 		} else {
 			// Copy other fields as is

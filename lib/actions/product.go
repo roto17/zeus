@@ -41,7 +41,9 @@ func AddProduct(c *gin.Context) {
 
 	// Find the user by username
 	var searched_company model_company.Company
-	if err := database.DB.Where("id = ?", product.CompanyID).First(&searched_company).Error; err != nil {
+	if err := database.DB.
+		Where("id = ?", product.CompanyID).
+		First(&searched_company).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("company_not_found", "", requestedLanguage)})
 		return
 	}
@@ -56,7 +58,7 @@ func AddProduct(c *gin.Context) {
 	productValidation := model_product.Product{
 		Description: product.Description,
 		CompanyID:   product.CompanyID,
-		Company:     &searched_company,
+		Company:     searched_company,
 		CategoryID:  product.CategoryID,
 		Category:    searched_category,
 	}
@@ -95,6 +97,15 @@ func UpdateProduct(c *gin.Context) {
 		panic("failed to assert type to Product")
 	}
 
+	var searched_company model_company.Company
+	if err := database.DB.
+		Scopes(model_company.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
+		Where("id = ?", product.CompanyID).
+		First(&searched_company).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("company_not_found", "", requestedLanguage)})
+		return
+	}
+
 	// Find the user by username
 	var searched_category model_product_category.ProductCategory
 	if err := database.DB.Where("id = ?", product.CategoryID).First(&searched_category).Error; err != nil {
@@ -102,12 +113,15 @@ func UpdateProduct(c *gin.Context) {
 		return
 	}
 
+	fmt.Printf("-----%v------------\n", product)
+
 	productValidation := model_product.Product{
 		ID:          product.ID,
 		Description: product.Description,
-		// QRCode:      product.QRCode,
-		CategoryID: product.CategoryID,
-		Category:   searched_category,
+		CategoryID:  product.CategoryID,
+		Category:    searched_category,
+		CompanyID:   product.CompanyID,
+		Company:     searched_company,
 	}
 
 	// Validate the incoming product data
@@ -118,7 +132,9 @@ func UpdateProduct(c *gin.Context) {
 	}
 
 	// Save the updated category to the database
-	if err := db.Save(&productValidation).Error; err != nil {
+	if err := db.
+		// Scopes(model_product.FilterByCompanyID(utils.GetParamIDFromGinClaims(c))).
+		Save(&productValidation).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("faild_update", "", requestedLanguage)})
 		return
 	}
@@ -167,7 +183,7 @@ func ViewProduct(c *gin.Context) {
 	var product model_product.Product
 
 	result := database.DB.
-		Scopes(model_product.FilterByCompanyID(utils.GetCompanyIDFromGinClaims(c))).
+		// Scopes(model_product.FilterByCompanyID(utils.GetParamIDFromGinClaims(c))).
 		Preload("Category").
 		Preload("Company").
 		First(&product, idParam)
@@ -177,7 +193,7 @@ func ViewProduct(c *gin.Context) {
 		return
 	}
 
-	// isMatching := utils.IsCompanyIDMatching(&product, utils.GetCompanyIDFromGinClaims(c))
+	// isMatching := utils.IsCompanyIDMatching(&product, utils.GetParamIDFromGinClaims(c))
 
 	// if !isMatching {
 	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("Insufficient_permissions", "", requested_language)})
@@ -208,7 +224,7 @@ func AllProducts(c *gin.Context) {
 
 	// Build base query with search filter
 	query := database.DB.Model(&model_product.Product{})
-	query = query.Scopes(model_product.FilterByCompanyID(utils.GetCompanyIDFromGinClaims(c)))
+	query = query.Scopes(model_product.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id")))
 	if search != "" {
 		query = query.Where("description ILIKE ?", "%"+search+"%") // Case-insensitive search
 	}
