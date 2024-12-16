@@ -1,7 +1,6 @@
 package actions
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -9,7 +8,6 @@ import (
 	"github.com/roto17/zeus/lib/database"
 	encryptions "github.com/roto17/zeus/lib/encryption"
 	model_product_category "github.com/roto17/zeus/lib/models/productcategories"
-	model_user "github.com/roto17/zeus/lib/models/users"
 	"github.com/roto17/zeus/lib/translation" // Assuming translation package handles translations
 	"github.com/roto17/zeus/lib/utils"
 )
@@ -27,27 +25,7 @@ func AddProductCategory(c *gin.Context) {
 		return
 	}
 
-	var user model_user.User
-
-	if err := database.DB.
-		// Preload("Company").
-		Where("id = ?", utils.GetParamIDFromGinClaims(c, "user_id")).First(&user).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
-		return
-	}
-
-	// var searched_company model_company.Company
-	// if err := database.DB.
-	// 	Where("id = ?", utils.GetParamIDFromGinClaims(c)).First(&searched_company).Error; err != nil {
-	// 	c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("company_not_found", "", requested_language)})
-	// 	return
-	// }
-
-	category.UserID = user.ID
-	category.User = user
-	// category.Description = "test okok"
-
-	fmt.Printf("---------%v----------\n", category)
+	category.UserID = utils.GetParamIDFromGinClaims(c, "user_id")
 
 	// Validate and get translated error messages
 	validationErrors := utils.FieldValidationAll(category, requested_language)
@@ -55,8 +33,6 @@ func AddProductCategory(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": validationErrors})
 		return
 	}
-
-	fmt.Printf("--After Error-------%v----------\n", category)
 
 	// Save the user in the database
 	if err := db.Create(&category).Error; err != nil {
@@ -151,7 +127,9 @@ func ViewProductCategory(c *gin.Context) {
 
 	var category model_product_category.ProductCategory
 
-	result := database.DB.First(&category, idParam)
+	result := database.DB.
+		Preload("User").
+		First(&category, idParam)
 
 	if result.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
@@ -179,11 +157,13 @@ func AllProductCategories(c *gin.Context) {
 
 	// Build base query with search filter
 	query := database.DB.Model(&model_product_category.ProductCategory{})
-	// query = query.
-	// Scopes(model_product_category.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id")))
+	query = query.Preload("User").
+		Scopes(model_product_category.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id")))
 
 	if search != "" {
-		query = query.Where("description ILIKE ?", "%"+search+"%") // Case-insensitive search for category names
+		query = query.
+			// Preload("User").
+			Where("description ILIKE ?", "%"+search+"%") // Case-insensitive search for category names
 	}
 
 	// Count total categories
