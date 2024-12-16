@@ -63,7 +63,9 @@ func UpdateProductCategory(c *gin.Context) {
 
 	// Fetch the existing category by ID
 	var existingCategory model_product_category.ProductCategory
-	if err := db.First(&existingCategory, category.ID).Error; err != nil {
+	if err := db.
+		Scopes(model_product_category.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
+		First(&existingCategory, category.ID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
 		return
 	}
@@ -98,7 +100,9 @@ func DeleteProductCategory(c *gin.Context) {
 
 	// Check if the category exists
 	var category model_product_category.ProductCategory
-	if err := db.First(&category, idParam).Error; err != nil {
+	if err := db.
+		Scopes(model_product_category.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
+		First(&category, idParam).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
 		return
 	}
@@ -128,7 +132,8 @@ func ViewProductCategory(c *gin.Context) {
 	var category model_product_category.ProductCategory
 
 	result := database.DB.
-		Preload("User").
+		Scopes(model_product_category.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
+		Preload("User.Company").
 		First(&category, idParam)
 
 	if result.Error != nil {
@@ -157,7 +162,7 @@ func AllProductCategories(c *gin.Context) {
 
 	// Build base query with search filter
 	query := database.DB.Model(&model_product_category.ProductCategory{})
-	query = query.Preload("User").
+	query = query.Preload("User.Company").
 		Scopes(model_product_category.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id")))
 
 	if search != "" {
