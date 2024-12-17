@@ -40,29 +40,26 @@ func AddProduct(c *gin.Context) {
 
 	// Find the user by username
 	var searched_category model_product_category.ProductCategory
-	if err := database.DB.
+	if err := db.
 		Scopes(model_product_category.
 			FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
-		Where("product_categories.id = ?", product.CategoryID).First(&searched_category).Error; err != nil {
+		Where("product_categories.id = ?", product.CategoryID).
+		First(&searched_category).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("category_not_found", "", requestedLanguage)})
 		return
 	}
 
-	productValidation := model_product.Product{
-		Description: product.Description,
-		UserID:      utils.GetParamIDFromGinClaims(c, "user_id"),
-		CategoryID:  product.CategoryID,
-	}
+	product.UserID = utils.GetParamIDFromGinClaims(c, "user_id")
 
 	// Validate the incoming product data
-	validationErrors := utils.FieldValidationAll(productValidation, requestedLanguage)
+	validationErrors := utils.FieldValidationAll(product, requestedLanguage)
 	if validationErrors != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": validationErrors})
 		return
 	}
 
 	// Save the product in the database
-	if err := db.Create(&productValidation).Error; err != nil {
+	if err := db.Create(&product).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("faild_addition", "", requestedLanguage)})
 		return
 	}
