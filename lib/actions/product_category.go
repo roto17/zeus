@@ -162,8 +162,8 @@ func AllProductCategories(c *gin.Context) {
 
 	// Build base query with search filter
 	query := database.DB.Model(&model_product_category.ProductCategory{})
-	query = query.Preload("User.Company").
-		Scopes(model_product_category.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id")))
+	query = query.Preload("User.Company")
+	// Scopes(model_product_category.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id")))
 
 	if search != "" {
 		query = query.

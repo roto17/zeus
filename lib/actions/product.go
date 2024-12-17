@@ -12,9 +12,9 @@ import (
 	encryptions "github.com/roto17/zeus/lib/encryption"
 	"github.com/skip2/go-qrcode"
 
-	model_company "github.com/roto17/zeus/lib/models/companies"
 	model_product_category "github.com/roto17/zeus/lib/models/productcategories"
 	model_product "github.com/roto17/zeus/lib/models/products"
+	model_user "github.com/roto17/zeus/lib/models/users"
 	"github.com/roto17/zeus/lib/translation" // Assuming translation package handles translations
 	"github.com/roto17/zeus/lib/utils"
 )
@@ -37,30 +37,21 @@ func AddProduct(c *gin.Context) {
 	if !ok {
 		panic("failed to assert type to Product")
 	}
-	// fmt.Printf("------------------%v--------------------", product)
-
-	// Find the user by username
-	var searched_company model_company.Company
-	if err := database.DB.
-		Where("id = ?", product.CompanyID).
-		First(&searched_company).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("company_not_found", "", requestedLanguage)})
-		return
-	}
 
 	// Find the user by username
 	var searched_category model_product_category.ProductCategory
-	if err := database.DB.Where("id = ?", product.CategoryID).First(&searched_category).Error; err != nil {
+	if err := database.DB.
+		Scopes(model_product_category.
+			FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
+		Where("product_categories.id = ?", product.CategoryID).First(&searched_category).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("category_not_found", "", requestedLanguage)})
 		return
 	}
 
 	productValidation := model_product.Product{
 		Description: product.Description,
-		CompanyID:   product.CompanyID,
-		Company:     searched_company,
+		UserID:      utils.GetParamIDFromGinClaims(c, "user_id"),
 		CategoryID:  product.CategoryID,
-		Category:    searched_category,
 	}
 
 	// Validate the incoming product data
@@ -97,11 +88,11 @@ func UpdateProduct(c *gin.Context) {
 		panic("failed to assert type to Product")
 	}
 
-	var searched_company model_company.Company
+	var searched_user model_user.User
 	if err := database.DB.
-		Scopes(model_company.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
-		Where("id = ?", product.CompanyID).
-		First(&searched_company).Error; err != nil {
+		Scopes(model_user.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
+		Where("id = ?", product.UserID).
+		First(&searched_user).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("company_not_found", "", requestedLanguage)})
 		return
 	}
@@ -120,8 +111,8 @@ func UpdateProduct(c *gin.Context) {
 		Description: product.Description,
 		CategoryID:  product.CategoryID,
 		Category:    searched_category,
-		CompanyID:   product.CompanyID,
-		Company:     searched_company,
+		UserID:      product.UserID,
+		User:        searched_user,
 	}
 
 	// Validate the incoming product data

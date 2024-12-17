@@ -68,8 +68,8 @@ func InitRouter(ctx context.Context) *gin.Engine {
 
 		api.POST("/products", JWTAuthMiddleware("admin"), actions.AddProduct)
 		api.PUT("/products", JWTAuthMiddleware("admin"), actions.UpdateProduct)
-		api.GET("/products/*path", JWTAuthMiddleware("admin"), actions.ViewProduct)
-		api.GET("/products", JWTAuthMiddleware("admin"), actions.AllProducts)
+		// api.GET("/products/*path", JWTAuthMiddleware("admin"), actions.ViewProduct)
+		// api.GET("/products", JWTAuthMiddleware("admin"), actions.AllProducts)
 		api.DELETE("/products/*path", JWTAuthMiddleware("admin"), actions.DeleteProduct)
 
 		// api.GET("/products", JWTAuthMiddleware("admin"), actions.SaveQR)
