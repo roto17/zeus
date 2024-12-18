@@ -14,7 +14,6 @@ import (
 
 	model_product_category "github.com/roto17/zeus/lib/models/productcategories"
 	model_product "github.com/roto17/zeus/lib/models/products"
-	model_user "github.com/roto17/zeus/lib/models/users"
 	"github.com/roto17/zeus/lib/translation" // Assuming translation package handles translations
 	"github.com/roto17/zeus/lib/utils"
 )
@@ -85,35 +84,30 @@ func UpdateProduct(c *gin.Context) {
 		panic("failed to assert type to Product")
 	}
 
-	var searched_user model_user.User
+	var searched_product model_product.Product
 	if err := database.DB.
-		Scopes(model_user.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
-		Where("id = ?", product.UserID).
-		First(&searched_user).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("company_not_found", "", requestedLanguage)})
+		Scopes(model_product.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
+		Where("products.id = ?", product.ID).
+		First(&searched_product).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("not_found", "", requestedLanguage)})
 		return
 	}
 
 	// Find the user by username
 	var searched_category model_product_category.ProductCategory
-	if err := database.DB.Where("id = ?", product.CategoryID).First(&searched_category).Error; err != nil {
+	if err := database.DB.
+		Scopes(model_product_category.
+			FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
+		Where("product_categories.id = ?", product.CategoryID).
+		First(&searched_category).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("category_not_found", "", requestedLanguage)})
 		return
 	}
 
-	fmt.Printf("-----%v------------\n", product)
-
-	productValidation := model_product.Product{
-		ID:          product.ID,
-		Description: product.Description,
-		CategoryID:  product.CategoryID,
-		Category:    searched_category,
-		UserID:      product.UserID,
-		User:        searched_user,
-	}
+	product.UserID = utils.GetParamIDFromGinClaims(c, "user_id")
 
 	// Validate the incoming product data
-	validationErrors := utils.FieldValidationAll(productValidation, requestedLanguage)
+	validationErrors := utils.FieldValidationAll(product, requestedLanguage)
 	if validationErrors != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": validationErrors})
 		return
@@ -122,7 +116,7 @@ func UpdateProduct(c *gin.Context) {
 	// Save the updated category to the database
 	if err := db.
 		// Scopes(model_product.FilterByCompanyID(utils.GetParamIDFromGinClaims(c))).
-		Save(&productValidation).Error; err != nil {
+		Save(&product).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("faild_update", "", requestedLanguage)})
 		return
 	}
@@ -141,7 +135,9 @@ func DeleteProduct(c *gin.Context) {
 
 	// Check if the category exists
 	var product model_product.Product
-	if err := db.First(&product, idParam).Error; err != nil {
+	if err := db.
+		Scopes(model_product.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
+		First(&product, idParam).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
 		return
 	}
@@ -171,9 +167,9 @@ func ViewProduct(c *gin.Context) {
 	var product model_product.Product
 
 	result := database.DB.
-		// Scopes(model_product.FilterByCompanyID(utils.GetParamIDFromGinClaims(c))).
+		Scopes(model_product.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
 		Preload("Category").
-		Preload("Company").
+		Preload("User.Company").
 		First(&product, idParam)
 
 	if result.Error != nil {
@@ -181,20 +177,8 @@ func ViewProduct(c *gin.Context) {
 		return
 	}
 
-	// isMatching := utils.IsCompanyIDMatching(&product, utils.GetParamIDFromGinClaims(c))
-
-	// if !isMatching {
-	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("Insufficient_permissions", "", requested_language)})
-
-	// 	return
-	// }
-	// fmt.Println("User Company ID match:", isMatching)
-
 	encryptedProduct := encryptions.EncryptObjectID(product)
 
-	// decryptedUser := encryptions.DecryptObjectID(encryptedProduct, &model_product.Product{}).(model_product.Product)
-
-	// Return the encryptedProduct
 	c.JSON(http.StatusOK, encryptedProduct)
 }
 
@@ -212,7 +196,8 @@ func AllProducts(c *gin.Context) {
 
 	// Build base query with search filter
 	query := database.DB.Model(&model_product.Product{})
-	query = query.Scopes(model_product.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id")))
+	// query = query.
+	// 	Scopes(model_product.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id")))
 	if search != "" {
 		query = query.Where("description ILIKE ?", "%"+search+"%") // Case-insensitive search
 	}
@@ -222,7 +207,7 @@ func AllProducts(c *gin.Context) {
 
 	// Fetch products with pagination
 	result := query.Preload("Category").
-		Preload("Company").
+		Preload("User.Company").
 		Limit(limit).
 		Offset(offset).
 		Find(&products)
