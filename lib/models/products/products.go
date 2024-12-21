@@ -10,14 +10,15 @@ import (
 
 // Notification represents a notification message structure
 type Product struct {
-	ID          uint                           `gorm:"primaryKey" json:"id"`
-	Description string                         `gorm:"type:varchar(50);unique" validate:"required" json:"description"`
-	CategoryID  uint                           `gorm:"not null;index" validate:"required" json:"category_id"` // Foreign key to the Category table
-	Category    model_category.ProductCategory `gorm:"foreignKey:CategoryID" validate:"-"`                    // Association to the Category
-	UserID      uint                           `gorm:"not null;index" validate:"-" json:"user_id"`            // Foreign key to the Category table
-	User        model_user.User                `gorm:"foreignKey:UserID" validate:"-"`
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID          uint   `gorm:"primaryKey" json:"id"`
+	Description string `gorm:"type:varchar(50);unique" validate:"required" json:"description"`
+	CategoryID  uint   `gorm:"not null;index" validate:"required" json:"category_id"` // Foreign key to the Category table
+	// Category    model_category.ProductCategory `gorm:"foreignKey:CategoryID" validate:"-" json:"category"`    // Association to the Category
+	Category  model_category.ProductCategoryResponse `gorm:"foreignKey:CategoryID" validate:"-" json:"category"` // Association to the Category
+	UserID    uint                                   `gorm:"not null;index" validate:"-" json:"user_id"`         // Foreign key to the Category table
+	User      model_user.UserResponse                `gorm:"foreignKey:UserID" validate:"-"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type ProductEncrypted struct {
@@ -28,6 +29,23 @@ type ProductEncrypted struct {
 	UserID     string `validate:"required" json:"user_id"`
 	// CreatedAt   time.Time
 	// UpdatedAt   time.Time
+}
+
+// Notification represents a notification message structure
+type ProductResponse struct {
+	ID          uint   `gorm:"primaryKey" json:"id"`
+	Description string `gorm:"type:varchar(50);unique" validate:"required" json:"description"`
+	CategoryID  uint   `gorm:"not null;index" validate:"required" json:"-"` // Foreign key to the Category table
+	// Category    model_category.ProductCategory `gorm:"foreignKey:CategoryID" validate:"-" json:"category"`    // Association to the Category
+	Category  model_category.ProductCategoryResponse `gorm:"foreignKey:CategoryID" validate:"-" json:"category"` // Association to the Category
+	UserID    uint                                   `gorm:"not null;index" validate:"-" json:"-"`               // Foreign key to the Category table
+	User      model_user.UserResponse                `gorm:"foreignKey:UserID" validate:"-" json:"user"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+func (ProductResponse) TableName() string {
+	return "products" // Replace this with your desired table name
 }
 
 // // Notification represents a notification message structure

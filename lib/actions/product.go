@@ -115,7 +115,6 @@ func UpdateProduct(c *gin.Context) {
 
 	// Save the updated category to the database
 	if err := db.
-		// Scopes(model_product.FilterByCompanyID(utils.GetParamIDFromGinClaims(c))).
 		Save(&product).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("faild_update", "", requestedLanguage)})
 		return
@@ -124,7 +123,7 @@ func UpdateProduct(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("updated_successfully", "", requestedLanguage)})
 }
 
-// DeleteProductCategory deletes a product category by ID
+// DeleteProduct deletes a product category by ID
 func DeleteProduct(c *gin.Context) {
 	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
 	db := database.DB
@@ -182,6 +181,7 @@ func ViewProduct(c *gin.Context) {
 	c.JSON(http.StatusOK, encryptedProduct)
 }
 
+// AllProducts handler
 func AllProducts(c *gin.Context) {
 	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
 
@@ -191,13 +191,13 @@ func AllProducts(c *gin.Context) {
 	// Get search query from query parameters
 	search := c.DefaultQuery("search", "")
 
-	var products []model_product.Product
+	var products []model_product.ProductResponse
 	var totalProducts int64
 
 	// Build base query with search filter
-	query := database.DB.Model(&model_product.Product{})
-	// query = query.
-	// 	Scopes(model_product.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id")))
+	query := database.DB.Model(&model_product.ProductResponse{})
+	query = query.
+		Scopes(model_product.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id")))
 	if search != "" {
 		query = query.Where("description ILIKE ?", "%"+search+"%") // Case-insensitive search
 	}
@@ -206,7 +206,8 @@ func AllProducts(c *gin.Context) {
 	query.Count(&totalProducts)
 
 	// Fetch products with pagination
-	result := query.Preload("Category").
+	result := query.
+		Preload("Category").
 		Preload("User.Company").
 		Limit(limit).
 		Offset(offset).
