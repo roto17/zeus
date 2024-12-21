@@ -80,9 +80,9 @@ type UserResponse struct {
 	Password       string                `gorm:"type:varchar(255)" validate:"required" json:"-"`                          // Max 255 characters
 	Role           string                `gorm:"type:varchar(50)" validate:"required,oneof=admin user guest" json:"role"` // Max 50 characters
 	CompanyID      uint                  `gorm:"not null;index" json:"-"`                                                 // Foreign key to the Category table
-	Company        model_company.Company `gorm:"foreignKey:CompanyID" json:"company"`
-	VerifiedAt     time.Time             `gorm:"type:timestamp" json:"verified_at,omitempty"`
-	VerifiedMethod string                `gorm:"type:varchar(50)" json:"verified_method,omitempty"`
+	Company        model_company.Company `gorm:"foreignKey:CompanyID" json:"-"`
+	VerifiedAt     time.Time             `gorm:"type:timestamp" json:"-"`
+	VerifiedMethod string                `gorm:"type:varchar(50)" json:"-"`
 }
 
 func (UserUpdateModel) TableName() string {

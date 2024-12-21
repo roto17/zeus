@@ -163,7 +163,7 @@ func ViewProduct(c *gin.Context) {
 
 	idParam := utils.DecryptID(escapedID)
 
-	var product model_product.Product
+	var product model_product.ProductResponse
 
 	result := database.DB.
 		Scopes(model_product.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).

@@ -17,6 +17,8 @@ type Product struct {
 	Category  model_category.ProductCategoryResponse `gorm:"foreignKey:CategoryID" validate:"-" json:"category"` // Association to the Category
 	UserID    uint                                   `gorm:"not null;index" validate:"-" json:"user_id"`         // Foreign key to the Category table
 	User      model_user.UserResponse                `gorm:"foreignKey:UserID" validate:"-"`
+	Unit      string                                 `gorm:"type:varchar(50)" validate:"required,oneof=Piece Metre KG" json:"unit"`
+	Quantity  int64                                  `gorm:"type:int;default:0" json:"quantity"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -27,6 +29,7 @@ type ProductEncrypted struct {
 	// QRCode      string `validate:"required" json:"qr_code"`
 	CategoryID string `validate:"required" json:"category_id"` // Foreign key to the User table
 	UserID     string `validate:"required" json:"user_id"`
+	Unit       string `validate:"required,oneof=Piece Metre KG" json:"unit"`
 	// CreatedAt   time.Time
 	// UpdatedAt   time.Time
 }
@@ -40,6 +43,8 @@ type ProductResponse struct {
 	Category  model_category.ProductCategoryResponse `gorm:"foreignKey:CategoryID" validate:"-" json:"category"` // Association to the Category
 	UserID    uint                                   `gorm:"not null;index" validate:"-" json:"-"`               // Foreign key to the Category table
 	User      model_user.UserResponse                `gorm:"foreignKey:UserID" validate:"-" json:"user"`
+	Unit      string                                 `gorm:"type:varchar(50)" validate:"-" json:"unit"`
+	Quantity  int64                                  `gorm:"type:int;default:0" json:"quantity"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
