@@ -12,7 +12,6 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/roto17/zeus/lib/config"
-	models "github.com/roto17/zeus/lib/models/companies"
 	model_user "github.com/roto17/zeus/lib/models/users"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -176,31 +175,24 @@ func DecryptID(encryptedID string) uint {
 }
 
 // IsCompanyIDMatching checks if the provided company ID matches the model's company ID.
-func IsCompanyIDMatching(entity models.CompanyProvider, companyID uint) bool {
-	// Get the company from the model
-	company := entity.GetCompany()
+// func IsCompanyIDMatching(entity models.CompanyProvider, companyID uint) bool {
+// 	// Get the company from the model
+// 	company := entity.GetCompany()
 
-	// Handle case when Company is nil
-	if company == nil {
-		fmt.Printf("entity is not associated with any company")
-		return false
-	}
-
-	// Handle case when CompanyID is 0
-	if company.ID == 0 {
-		fmt.Printf("company has no valid ID")
-		return false
-	}
-
-	// result := company.ID == companyID
-
-	// Compare the company IDs
-	return company.ID == companyID
-}
-
-// // FilterByCompanyID is a reusable GORM scope to filter by company_id
-// func FilterByCompanyID(companyID uint) func(db *gorm.DB) *gorm.DB {
-// 	return func(db *gorm.DB) *gorm.DB {
-// 		return db.Where("company_id = ?", companyID)
+// 	// Handle case when Company is nil
+// 	if company == nil {
+// 		fmt.Printf("entity is not associated with any company")
+// 		return false
 // 	}
+
+// 	// Handle case when CompanyID is 0
+// 	if company.ID == 0 {
+// 		fmt.Printf("company has no valid ID")
+// 		return false
+// 	}
+
+// 	// result := company.ID == companyID
+
+// 	// Compare the company IDs
+// 	return company.ID == companyID
 // }

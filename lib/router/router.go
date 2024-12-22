@@ -41,14 +41,14 @@ func InitRouter(ctx context.Context) *gin.Engine {
 	{
 		// User-related routes
 		api.POST("/users", actions.Register)
-		api.PUT("/users", JWTAuthMiddleware("admin", "super_admin"), actions.UpdateUser)
+		api.PATCH("/users", JWTAuthMiddleware("admin", "super_admin"), actions.UpdateUser)
 		api.GET("/users/*path", JWTAuthMiddleware("admin", "super_admin"), actions.ViewUser)
 		// api.GET("/users", JWTAuthMiddleware("super_admin"), actions.AllUsers)
 		api.GET("/users", JWTAuthMiddleware("admin"), actions.AllUsers)
 		api.DELETE("/users/*path", JWTAuthMiddleware("super_admin"), actions.DeleteUser)
 
 		api.POST("/companies", actions.AddCompany)
-		api.PUT("/companies", actions.UpdateCompany)
+		api.PATCH("/companies", actions.UpdateCompany)
 		api.GET("/companies/*path", actions.ViewCompany)
 		api.GET("/companies", actions.AllCompanies)
 		api.DELETE("/companies/*path", actions.DeleteCompany)
@@ -61,13 +61,13 @@ func InitRouter(ctx context.Context) *gin.Engine {
 		// api.GET("/verify_sms", JWTAuthMiddleware("admin", "super_admin"), actions.VerifyBySMS)
 
 		api.POST("/product_categories", JWTAuthMiddleware("admin"), actions.AddProductCategory)
-		api.PUT("/product_categories", JWTAuthMiddleware("admin"), actions.UpdateProductCategory)
+		api.PATCH("/product_categories", JWTAuthMiddleware("admin"), actions.UpdateProductCategory)
 		api.GET("/product_categories/*path", JWTAuthMiddleware("admin"), actions.ViewProductCategory)
 		api.GET("/product_categories", JWTAuthMiddleware("admin"), actions.AllProductCategories)
 		api.DELETE("/product_categories/*path", JWTAuthMiddleware("admin"), actions.DeleteProductCategory)
 
 		api.POST("/products", JWTAuthMiddleware("admin"), actions.AddProduct)
-		api.PUT("/products", JWTAuthMiddleware("admin"), actions.UpdateProduct)
+		api.PATCH("/products", JWTAuthMiddleware("admin"), actions.UpdateProduct)
 		api.GET("/products/*path", JWTAuthMiddleware("admin"), actions.ViewProduct)
 		api.GET("/products", JWTAuthMiddleware("admin"), actions.AllProducts)
 		api.DELETE("/products/*path", JWTAuthMiddleware("admin"), actions.DeleteProduct)

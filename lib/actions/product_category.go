@@ -10,25 +10,26 @@ import (
 	model_product_category "github.com/roto17/zeus/lib/models/productcategories"
 	"github.com/roto17/zeus/lib/translation" // Assuming translation package handles translations
 	"github.com/roto17/zeus/lib/utils"
+	"gorm.io/gorm"
 )
 
 // Add Category
 func AddProductCategory(c *gin.Context) {
 
-	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
+	requestedLanguage := utils.GetHeaderVarToString(c.Get("requestedLanguage"))
 	db := database.DB
 	var category model_product_category.ProductCategory
 
 	// Bind the incoming JSON to the user struct
 	if err := c.ShouldBindJSON(&category); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("invalid_input", "", requested_language)})
+		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("invalid_input", "", requestedLanguage)})
 		return
 	}
 
 	category.UserID = utils.GetParamIDFromGinClaims(c, "user_id")
 
 	// Validate and get translated error messages
-	validationErrors := utils.FieldValidationAll(category, requested_language)
+	validationErrors := utils.FieldValidationAll(category, requestedLanguage)
 	if validationErrors != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": validationErrors})
 		return
@@ -36,23 +37,23 @@ func AddProductCategory(c *gin.Context) {
 
 	// Save the user in the database
 	if err := db.Create(&category).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("faild_addition", "", requested_language)})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("faild_addition", "", requestedLanguage)})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("added_successfuly", "", requested_language)})
+	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("added_successfuly", "", requestedLanguage)})
 }
 
 // Update Category
 func UpdateProductCategory(c *gin.Context) {
-	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
+	requestedLanguage := utils.GetHeaderVarToString(c.Get("requestedLanguage"))
 	db := database.DB
 	var encryptedCategory model_product_category.ProductCategoryEncrypted
 	var category model_product_category.ProductCategory
 
 	// Bind the incoming JSON to the category struct
 	if err := c.ShouldBindJSON(&encryptedCategory); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("invalid_input", "", requested_language)})
+		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("invalid_input", "", requestedLanguage)})
 		return
 	}
 
@@ -61,37 +62,41 @@ func UpdateProductCategory(c *gin.Context) {
 		panic("failed to assert type to ProductCategory")
 	}
 
-	// Fetch the existing category by ID
-	var existingCategory model_product_category.ProductCategory
+	// Check if the category exists by ID
 	if err := db.
 		Scopes(model_product_category.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
-		First(&existingCategory, category.ID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
+		Where("product_categories.id = ?", category.ID).
+		First(&model_product_category.ProductCategory{}).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requestedLanguage)})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("internal_error", "", requestedLanguage)})
+		}
 		return
 	}
 
 	// Update fields from the input
-	existingCategory.Description = category.Description
+	category.UserID = utils.GetParamIDFromGinClaims(c, "user_id")
 
 	// Validate and get translated error messages
-	validationErrors := utils.FieldValidationAll(existingCategory, requested_language)
+	validationErrors := utils.FieldValidationAll(category, requestedLanguage)
 	if validationErrors != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": validationErrors})
 		return
 	}
 
 	// Save the updated category to the database
-	if err := db.Save(&existingCategory).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("faild_update", "", requested_language)})
+	if err := db.Save(&category).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("faild_update", "", requestedLanguage)})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("updated_successfully", "", requested_language)})
+	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("updated_successfully", "", requestedLanguage)})
 }
 
 // DeleteProductCategory deletes a product category by ID
 func DeleteProductCategory(c *gin.Context) {
-	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
+	requestedLanguage := utils.GetHeaderVarToString(c.Get("requestedLanguage"))
 	db := database.DB
 
 	escapedID := utils.GetHeaderVarToString(c.Get("escapedID"))
@@ -103,7 +108,7 @@ func DeleteProductCategory(c *gin.Context) {
 	if err := db.
 		Scopes(model_product_category.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
 		First(&category, idParam).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
+		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requestedLanguage)})
 		return
 	}
 
@@ -111,20 +116,20 @@ func DeleteProductCategory(c *gin.Context) {
 	if err := db.Delete(&category).Error; err != nil {
 
 		if strings.Contains(err.Error(), "23503") {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("fk_issue", "", requested_language)})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("fk_issue", "", requestedLanguage)})
 			return
 		}
 
-		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("faild_deletion", "", requested_language)})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("faild_deletion", "", requestedLanguage)})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("delete_successfully", "", requested_language)})
+	c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("delete_successfully", "", requestedLanguage)})
 }
 
 // ViewUser handler
 func ViewProductCategory(c *gin.Context) {
-	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
+	requestedLanguage := utils.GetHeaderVarToString(c.Get("requestedLanguage"))
 	escapedID := utils.GetHeaderVarToString(c.Get("escapedID"))
 
 	idParam := utils.DecryptID(escapedID)
@@ -137,7 +142,7 @@ func ViewProductCategory(c *gin.Context) {
 		First(&category, idParam)
 
 	if result.Error != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
+		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requestedLanguage)})
 		return
 	}
 
@@ -149,7 +154,7 @@ func ViewProductCategory(c *gin.Context) {
 
 // AllProductCategories handler
 func AllProductCategories(c *gin.Context) {
-	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
+	requestedLanguage := utils.GetHeaderVarToString(c.Get("requestedLanguage"))
 
 	// Get pagination parameters from query
 	limit, offset := utils.GetPaginationParams(c)
@@ -162,8 +167,8 @@ func AllProductCategories(c *gin.Context) {
 
 	// Build base query with search filter
 	query := database.DB.Model(&model_product_category.ProductCategory{})
-	query = query.Preload("User.Company")
-	// Scopes(model_product_category.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id")))
+	query = query.Preload("User.Company").
+		Scopes(model_product_category.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id")))
 
 	if search != "" {
 		query = query.
@@ -178,7 +183,7 @@ func AllProductCategories(c *gin.Context) {
 	result := query.Limit(limit).Offset(offset).Find(&categories)
 
 	if result.Error != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
+		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requestedLanguage)})
 		return
 	}
 

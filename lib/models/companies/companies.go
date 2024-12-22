@@ -23,12 +23,12 @@ type CompanyEncrypted struct {
 
 // Define an interface that models with a Company field must implement
 type CompanyProvider interface {
-	GetCompany() *Company
+	// GetCompany() *Company
 	FilterByCompanyID(companyID uint) *gorm.DB
 }
 
-func FilterByCompanyID(companyID uint) func(db *gorm.DB) *gorm.DB {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("id = ?", companyID)
-	}
-}
+// func FilterByCompanyID(companyID uint) func(db *gorm.DB) *gorm.DB {
+// 	return func(db *gorm.DB) *gorm.DB {
+// 		return db.Where("id = ?", companyID)
+// 	}
+// }

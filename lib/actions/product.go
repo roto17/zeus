@@ -11,6 +11,7 @@ import (
 	"github.com/roto17/zeus/lib/database"
 	encryptions "github.com/roto17/zeus/lib/encryption"
 	"github.com/skip2/go-qrcode"
+	"gorm.io/gorm"
 
 	model_product_category "github.com/roto17/zeus/lib/models/productcategories"
 	model_product "github.com/roto17/zeus/lib/models/products"
@@ -37,14 +38,16 @@ func AddProduct(c *gin.Context) {
 		panic("failed to assert type to Product")
 	}
 
-	// Find the user by username
-	var searched_category model_product_category.ProductCategory
+	// Check if the category exists by ID
 	if err := db.
-		Scopes(model_product_category.
-			FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
+		Scopes(model_product_category.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
 		Where("product_categories.id = ?", product.CategoryID).
-		First(&searched_category).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("category_not_found", "", requestedLanguage)})
+		First(&model_product_category.ProductCategory{}).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("category_not_found", "", requestedLanguage)})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("internal_error", "", requestedLanguage)})
+		}
 		return
 	}
 
@@ -71,7 +74,7 @@ func UpdateProduct(c *gin.Context) {
 	db := database.DB
 	var productEncrypted model_product.ProductEncrypted
 
-	var product model_product.Product
+	var product model_product.ProductPatch
 
 	// Bind the incoming JSON to the product struct
 	if err := c.ShouldBindJSON(&productEncrypted); err != nil {
@@ -79,29 +82,9 @@ func UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	product, ok := encryptions.DecryptObjectID(productEncrypted, &product).(model_product.Product)
+	product, ok := encryptions.DecryptObjectID(productEncrypted, &product).(model_product.ProductPatch)
 	if !ok {
 		panic("failed to assert type to Product")
-	}
-
-	var searched_product model_product.Product
-	if err := database.DB.
-		Scopes(model_product.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
-		Where("products.id = ?", product.ID).
-		First(&searched_product).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("not_found", "", requestedLanguage)})
-		return
-	}
-
-	// Find the user by username
-	var searched_category model_product_category.ProductCategory
-	if err := database.DB.
-		Scopes(model_product_category.
-			FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
-		Where("product_categories.id = ?", product.CategoryID).
-		First(&searched_category).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("category_not_found", "", requestedLanguage)})
-		return
 	}
 
 	product.UserID = utils.GetParamIDFromGinClaims(c, "user_id")
@@ -113,9 +96,35 @@ func UpdateProduct(c *gin.Context) {
 		return
 	}
 
+	// Check if the Product exists by ID
+	if err := db.
+		Scopes(model_product.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
+		Where("products.id = ?", product.ID).
+		First(&model_product.Product{}).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requestedLanguage)})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("internal_error", "", requestedLanguage)})
+		}
+		return
+	}
+
+	// Check if the category exists by ID
+	if err := db.
+		Scopes(model_product_category.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
+		Where("product_categories.id = ?", product.CategoryID).
+		First(&model_product_category.ProductCategory{}).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("category_not_found", "", requestedLanguage)})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("internal_error", "", requestedLanguage)})
+		}
+		return
+	}
+
 	// Save the updated category to the database
 	if err := db.
-		Save(&product).Error; err != nil {
+		Updates(&product).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("faild_update", "", requestedLanguage)})
 		return
 	}

@@ -20,8 +20,8 @@ type ProductCategory struct {
 
 type ProductCategoryEncrypted struct {
 	ID          string `validate:"required" json:"id"`
-	Description string ` json:"description"`
-	UserID      string `validate:"required" json:"user_id"`
+	Description string `validate:"required" json:"description"`
+	UserID      string ` json:"user_id"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }

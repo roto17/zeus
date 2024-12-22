@@ -305,7 +305,9 @@ func UpdateUser(c *gin.Context) {
 	}
 
 	var searched_company model_company.Company
-	if err := database.DB.Scopes(model_company.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).Where("id = ?", user.CompanyID).First(&searched_company).Error; err != nil {
+	if err := database.DB.
+		// Scopes(model_company.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
+		Where("id = ?", user.CompanyID).First(&searched_company).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("company_not_found", "", requested_language)})
 		return
 	}
