@@ -74,7 +74,7 @@ func UpdateProduct(c *gin.Context) {
 	db := database.DB
 	var productEncrypted model_product.ProductEncrypted
 
-	var product model_product.ProductPatch
+	var product model_product.Product
 
 	// Bind the incoming JSON to the product struct
 	if err := c.ShouldBindJSON(&productEncrypted); err != nil {
@@ -82,7 +82,7 @@ func UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	product, ok := encryptions.DecryptObjectID(productEncrypted, &product).(model_product.ProductPatch)
+	product, ok := encryptions.DecryptObjectID(productEncrypted, &product).(model_product.Product)
 	if !ok {
 		panic("failed to assert type to Product")
 	}
@@ -96,30 +96,35 @@ func UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	// Check if the Product exists by ID
-	if err := db.
-		Scopes(model_product.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
-		Where("products.id = ?", product.ID).
-		First(&model_product.Product{}).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requestedLanguage)})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("internal_error", "", requestedLanguage)})
+	if product.ID > 0 {
+		// Check if the Product exists by ID
+		if err := db.
+			Scopes(model_product.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
+			Where("products.id = ?", product.ID).
+			First(&model_product.Product{}).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requestedLanguage)})
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("internal_error", "", requestedLanguage)})
+			}
+			return
 		}
-		return
 	}
 
-	// Check if the category exists by ID
-	if err := db.
-		Scopes(model_product_category.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
-		Where("product_categories.id = ?", product.CategoryID).
-		First(&model_product_category.ProductCategory{}).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("category_not_found", "", requestedLanguage)})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("internal_error", "", requestedLanguage)})
+	if product.CategoryID > 0 {
+		// Check if the category exists by ID
+		if err := db.
+			Scopes(model_product_category.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
+			Where("product_categories.id = ?", product.CategoryID).
+			First(&model_product_category.ProductCategory{}).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("category_not_found", "", requestedLanguage)})
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("internal_error", "", requestedLanguage)})
+			}
+			return
 		}
-		return
+
 	}
 
 	// Save the updated category to the database

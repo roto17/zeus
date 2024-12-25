@@ -40,12 +40,12 @@ func FilterByCompanyID(companyID uint) func(db *gorm.DB) *gorm.DB {
 }
 
 type ProductCategoryResponse struct {
-	ID          uint            `gorm:"primaryKey" json:"id"`
-	Description string          `gorm:"type:varchar(50);unique" validate:"required" json:"description"`
-	UserID      uint            `gorm:"not null;index" validate:"required" json:"-"` // Foreign key to the Category table
-	User        model_user.User `gorm:"foreignKey:UserID" validate:"-" json:"-"`
-	CreatedAt   time.Time       `json:"-"`
-	UpdatedAt   time.Time       `json:"-"`
+	ID          uint                    `gorm:"primaryKey" json:"id"`
+	Description string                  `gorm:"type:varchar(50);unique" validate:"required" json:"description"`
+	UserID      uint                    `gorm:"not null;index" validate:"required" json:"-"` // Foreign key to the Category table
+	User        model_user.UserResponse `gorm:"foreignKey:UserID" validate:"-" json:"user"`
+	CreatedAt   time.Time               `json:"-"`
+	UpdatedAt   time.Time               `json:"-"`
 }
 
 func (ProductCategoryResponse) TableName() string {
