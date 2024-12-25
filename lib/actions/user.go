@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"gorm.io/gorm"
 
 	"github.com/gin-gonic/gin"
 	"github.com/roto17/zeus/lib/config"
@@ -297,44 +298,49 @@ func UpdateUser(c *gin.Context) {
 		panic("failed to assert type to User")
 	}
 
-	// Fetch the existing category by ID
-	var existingUser model_user.UserUpdateModel
-	if err := db.Scopes(model_user.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).First(&existingUser, user.ID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
+	if err := db.
+		Where("users.id = ?", user.ID).
+		First(&model_user.User{}).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("internal_error", "", requested_language)})
+		}
 		return
 	}
 
-	var searched_company model_company.Company
-	if err := database.DB.
-		// Scopes(model_company.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
-		Where("id = ?", user.CompanyID).First(&searched_company).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("company_not_found", "", requested_language)})
-		return
+	if user.CompanyID > 0 {
+
+		if err := db.
+			Where("companies.id = ?", user.CompanyID).
+			First(&model_company.Company{}).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("company_not_found", "", requested_language)})
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("internal_error", "", requested_language)})
+			}
+			return
+		}
 	}
 
-	hashedPassword, err := utils.HashPassword(user.Password)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("password_hashing_failed", "", requested_language)})
-		return
+	if user.Password != "" {
+		hashedPassword, err := utils.HashPassword(user.Password)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("password_hashing_failed", "", requested_language)})
+			return
+		}
+		user.Password = hashedPassword
 	}
-
-	// Update fields from the input
-	existingUser.FirstName = user.FirstName
-	existingUser.MiddleName = user.MiddleName
-	existingUser.LastName = user.LastName
-	existingUser.Password = hashedPassword
-	existingUser.CompanyID = user.CompanyID
-	existingUser.Company = searched_company
 
 	// Validate and get translated error messages
-	validationErrors := utils.FieldValidationAll(existingUser, requested_language)
+	validationErrors := utils.FieldValidationAll(user, requested_language)
 	if validationErrors != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": validationErrors})
 		return
 	}
 
 	// Save the updated category to the database
-	if err := db.Save(&existingUser).Error; err != nil {
+	if err := db.Updates(&user).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("faild_update", "", requested_language)})
 		return
 	}
@@ -424,10 +430,10 @@ func AllUsers(c *gin.Context) {
 // VerifyByMail handles email verification
 func VerifyByMail(c *gin.Context) {
 	tokenString := c.Query("signature")
-	requestedLanguage := utils.GetHeaderVarToString(c.Get("requested_language"))
+	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
 
 	if tokenString == "" {
-		c.HTML(http.StatusBadRequest, "error.html", gin.H{"error": translation.GetTranslation("signature_required", "", requestedLanguage)})
+		c.HTML(http.StatusBadRequest, "error.html", gin.H{"error": translation.GetTranslation("signature_required", "", requested_language)})
 		return
 	}
 
@@ -440,7 +446,7 @@ func VerifyByMail(c *gin.Context) {
 	})
 
 	if err != nil || !token.Valid {
-		c.HTML(http.StatusUnauthorized, "error.html", gin.H{"error": translation.GetTranslation("invalid_or_expired_token", "", requestedLanguage)})
+		c.HTML(http.StatusUnauthorized, "error.html", gin.H{"error": translation.GetTranslation("invalid_or_expired_token", "", requested_language)})
 		c.Abort()
 		return
 	}
@@ -448,7 +454,7 @@ func VerifyByMail(c *gin.Context) {
 	// Extract the claims
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		c.HTML(http.StatusUnauthorized, "error.html", gin.H{"error": translation.GetTranslation("invalid_token_claims", "", requestedLanguage)})
+		c.HTML(http.StatusUnauthorized, "error.html", gin.H{"error": translation.GetTranslation("invalid_token_claims", "", requested_language)})
 		c.Abort()
 		return
 	}
@@ -459,13 +465,13 @@ func VerifyByMail(c *gin.Context) {
 	result := database.DB.First(&user, userID)
 
 	if result.Error != nil {
-		c.HTML(http.StatusNotFound, "error.html", gin.H{"error": translation.GetTranslation("not_found", "", requestedLanguage)})
+		c.HTML(http.StatusNotFound, "error.html", gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
 		c.Abort()
 		return
 	}
 
 	if !user.VerifiedAt.IsZero() {
-		c.HTML(http.StatusOK, "success.html", gin.H{"message": translation.GetTranslation("acct_already_verified", "", requestedLanguage)})
+		c.HTML(http.StatusOK, "success.html", gin.H{"message": translation.GetTranslation("acct_already_verified", "", requested_language)})
 		return
 	}
 
@@ -473,10 +479,10 @@ func VerifyByMail(c *gin.Context) {
 	user.VerifiedMethod = "Mail"
 
 	if err := database.DB.Save(&user).Error; err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"error": translation.GetTranslation("update_verification_date_failed", "", requestedLanguage)})
+		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"error": translation.GetTranslation("update_verification_date_failed", "", requested_language)})
 		c.Abort()
 		return
 	}
 
-	c.HTML(http.StatusOK, "success.html", gin.H{"message": translation.GetTranslation("user_verified_successfully", "", requestedLanguage)})
+	c.HTML(http.StatusOK, "success.html", gin.H{"message": translation.GetTranslation("user_verified_successfully", "", requested_language)})
 }
