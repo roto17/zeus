@@ -26,7 +26,7 @@ func ValidateStruct(model interface{}, language string) []model_validation.Valid
 	// fmt.Printf("%s", model.(model_user.User).Password)
 	// fmt.Printf("**************\n")
 
-	fmt.Printf("---err----------%v----------------\n", err)
+	// fmt.Printf("---err----------%v----------------\n", err)
 
 	if err != nil {
 		for _, fieldErr := range err.(validator.ValidationErrors) {
@@ -37,20 +37,27 @@ func ValidateStruct(model interface{}, language string) []model_validation.Valid
 			// message = strings.Replace(message, "{Field}", fieldErr.StructField(), 1)
 
 			// Check if the error tag is "oneof"
+			fieldValue := getFieldValue(model, fieldErr.StructField())
 			if fieldErr.Tag() == "oneof" {
 				// Dynamically retrieve the allowed values from the struct tag
 				allowedValues := getOneOfTagValue(model, fieldErr.StructField())
 
 				// Replace the {Values} placeholder in the error message
 				message = strings.Replace(message, "{values}", allowedValues, 1)
-			}
-			fmt.Printf("%s", fieldErr.StructField())
 
-			// Append the custom error message to the errors slice
-			errors = append(errors, model_validation.ValidationError{
-				Field:   fieldErr.StructField(),
-				Message: message,
-			})
+				// fmt.Printf("%v++++++++++++++++++++", fieldValue)
+			}
+			// fmt.Printf("%s", fieldErr.StructField())
+
+			if fieldErr.Tag() != "oneof" || (fieldErr.Tag() == "oneof" && fieldValue != "") {
+				// Append the custom error message to the errors slice
+				errors = append(errors, model_validation.ValidationError{
+					Field:   fieldErr.StructField(),
+					Message: message,
+				})
+
+			}
+
 		}
 	}
 
@@ -191,3 +198,15 @@ func SendVerificationEmail(userEmail, token, appBaseURL, smtpUser, smtpPass, smt
 // 	return nil
 
 // }
+
+func getFieldValue(model interface{}, fieldName string) interface{} { // Use reflection to get the value of the field
+	v := reflect.ValueOf(model)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	field := v.FieldByName(fieldName)
+	if field.IsValid() {
+		return field.Interface()
+	}
+	return nil
+}

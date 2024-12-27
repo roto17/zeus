@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/roto17/zeus/lib/database"
 	encryptions "github.com/roto17/zeus/lib/encryption"
+	"gorm.io/gorm"
 
 	model_company "github.com/roto17/zeus/lib/models/companies"
 	"github.com/roto17/zeus/lib/translation" // Assuming translation package handles translations
@@ -26,19 +27,15 @@ func AddCompany(c *gin.Context) {
 		return
 	}
 
-	newCompany := model_company.Company{
-		Description: company.Description,
-	}
-
 	// Validate and get translated error messages
-	validationErrors := utils.FieldValidationAll(newCompany, requested_language)
+	validationErrors := utils.FieldValidationAll(company, requested_language)
 	if validationErrors != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": validationErrors})
 		return
 	}
 
 	// Save the user in the database
-	if err := db.Create(&newCompany).Error; err != nil {
+	if err := db.Create(&company).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("faild_addition", "", requested_language)})
 		return
 	}
@@ -53,7 +50,7 @@ func ViewCompany(c *gin.Context) {
 
 	idParam := utils.DecryptID(escapedID)
 
-	var company model_company.Company
+	var company model_company.CompanyResponse
 
 	result := database.DB.First(&company, idParam)
 
@@ -78,11 +75,11 @@ func AllCompanies(c *gin.Context) {
 	// Get search query from query parameters
 	search := c.DefaultQuery("search", "")
 
-	var companies []model_company.Company
+	var companies []model_company.CompanyResponse
 	var totalCompanies int64
 
 	// Build base query with search filter
-	query := database.DB.Model(&model_company.Company{})
+	query := database.DB.Model(&model_company.CompanyResponse{})
 	if search != "" {
 		query = query.Where("description ILIKE ?", "%"+search+"%") // Case-insensitive search for company names
 	}
@@ -132,25 +129,26 @@ func UpdateCompany(c *gin.Context) {
 		panic("failed to assert type to Company")
 	}
 
-	// Fetch the existing company by ID
-	var existingCompany model_company.Company
-	if err := db.First(&existingCompany, company.ID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
+	if err := db.
+		Where("companies.id = ?", company.ID).
+		First(&model_company.Company{}).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("not_found", "", requested_language)})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("internal_error", "", requested_language)})
+		}
 		return
 	}
 
-	// Update fields from the input
-	existingCompany.Description = company.Description
-
 	// Validate and get translated error messages
-	validationErrors := utils.FieldValidationAll(existingCompany, requested_language)
+	validationErrors := utils.FieldValidationAll(company, requested_language)
 	if validationErrors != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": validationErrors})
 		return
 	}
 
 	// Save the updated category to the database
-	if err := db.Save(&existingCompany).Error; err != nil {
+	if err := db.Updates(&company).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("faild_update", "", requested_language)})
 		return
 	}

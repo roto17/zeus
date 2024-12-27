@@ -13,27 +13,17 @@ type User struct {
 	FirstName      string                `gorm:"type:varchar(50)" validate:"required" json:"first_name"`                  // Max 50 characters
 	MiddleName     string                `gorm:"type:varchar(50)" json:"middle_name,omitempty"`                           // Optional, max 50 characters
 	LastName       string                `gorm:"type:varchar(50)" validate:"required" json:"last_name"`                   // Max 50 characters
-	Username       string                `gorm:"type:varchar(255)" validate:"-" json:"username"`                          // Max 255 characters
-	Email          string                `gorm:"type:varchar(255);unique" validate:"-" json:"email"`                      // Unique and valid email
-	Password       string                `gorm:"type:varchar(255)" validate:"-" json:"password"`                          // Max 255 characters
+	Username       string                `gorm:"type:varchar(255);unique" validate:"required" json:"username"`            // Max 255 characters
+	Email          string                `gorm:"type:varchar(255);unique" validate:"required" json:"email"`               // Unique and valid email
+	Password       string                `gorm:"type:varchar(255)" validate:"required" json:"password"`                   // Max 255 characters
 	Role           string                `gorm:"type:varchar(50)" validate:"required,oneof=admin user guest" json:"role"` // Max 50 characters
-	CompanyID      uint                  `gorm:"not null;index" json:"company_id"`                                        // Foreign key to the Category table
+	CompanyID      uint                  `gorm:"not null;index" validate:"required" json:"company_id"`                    // Foreign key to the Category table
 	Company        model_company.Company `gorm:"foreignKey:CompanyID" validate:"-" json:"-"`
 	VerifiedAt     time.Time             `gorm:"type:timestamp" json:"verified_at,omitempty"`
 	VerifiedMethod string                `gorm:"type:varchar(50)" json:"verified_method,omitempty"`
+	CreatedAt      time.Time             `json:"created_at,omitempty"`
+	UpdatedAt      time.Time             `json:"updated_at,omitempty"`
 }
-
-// type CreateUserInput struct {
-// 	FirstName  string `json:"first_name"`            // Max 50 characters
-// 	MiddleName string `json:"middle_name,omitempty"` // Optional, max 50 characters
-// 	LastName   string `json:"last_name"`             // Max 50 characters
-// 	Username   string `json:"username"`              // Max 255 characters
-// 	Email      string `json:"email"`                 // Unique and valid email
-// 	Password   string `json:"Password"`              // Max 255 characters
-// 	Role       string `json:"role"`                  // Max 50 characters
-// 	CompanyID  string `json:"company_id"`            // Foreign key to the Category table
-// 	// VerifiedAt time.Time `json:"verified_at,omitempty"`
-// }
 
 type LoginUserInput struct {
 	Username string `json:"username" validate:"required"`
@@ -44,33 +34,55 @@ type EncryptedUser struct {
 	ID             string                `gorm:"-" json:"id"`
 	FirstName      string                `gorm:"-" json:"first_name"`  // Max 50 characters
 	MiddleName     string                `gorm:"-" json:"middle_name"` // Optional, max 50 characters
-	LastName       string                `gorm:"-"  json:"last_name"`  // Max 50 characters
-	Username       string                `gorm:"-"  json:"username"`   // Max 255 characters
-	Email          string                `gorm:"-"  json:"email"`      // Unique and valid email
-	Password       string                `gorm:"-"  json:"Password"`   // Max 255 characters
-	Role           string                `gorm:"-"  json:"role"`       // Max 50 characters
+	LastName       string                `gorm:"-" json:"last_name"`   // Max 50 characters
+	Username       string                `gorm:"-" json:"username"`    // Max 255 characters
+	Email          string                `gorm:"-" json:"email"`       // Unique and valid email
+	Password       string                `gorm:"-" json:"Password"`    // Max 255 characters
+	Role           string                `gorm:"-" json:"role"`        // Max 50 characters
 	CompanyID      string                `gorm:"-" json:"company_id"`  // Foreign key to the Category table
 	Company        model_company.Company `gorm:"-"`
 	VerifiedAt     time.Time             `gorm:"-" json:"verified_at,omitempty"`
 	VerifiedMethod string                `gorm:"-" json:"verified_method,omitempty"`
 }
 
+type UserPatch struct {
+	ID             uint      `gorm:"primaryKey" validate:"required" json:"id"`
+	FirstName      string    `gorm:"type:varchar(50)" json:"first_name,omitempty"`                             // Max 50 characters
+	MiddleName     string    `gorm:"type:varchar(50)" json:"middle_name,omitempty"`                            // Optional, max 50 characters
+	LastName       string    `gorm:"type:varchar(50)" json:"last_name,omitempty"`                              // Max 50 characters
+	Username       string    `gorm:"type:varchar(255);unique" json:"username,omitempty"`                       // Max 255 characters
+	Email          string    `gorm:"type:varchar(255);unique" json:"email,omitempty"`                          // Unique and valid email
+	Password       string    `gorm:"type:varchar(255)" json:"password,omitempty"`                              // Max 255 characters
+	Role           string    `gorm:"type:varchar(50)" validate:"oneof=admin user guest" json:"role,omitempty"` // Max 50 characters
+	CompanyID      uint      `gorm:"not null;index" json:"company_id,omitempty"`                               // Foreign key to the Category table
+	VerifiedAt     time.Time `gorm:"type:timestamp" json:"verified_at,omitempty"`
+	VerifiedMethod string    `gorm:"type:varchar(50)" json:"verified_method,omitempty"`
+	CreatedAt      time.Time `json:"created_at,omitempty"`
+	UpdatedAt      time.Time `json:"updated_at,omitempty"`
+}
+
 type UserResponse struct {
-	ID             uint                  `gorm:"primaryKey" json:"id"`
-	FirstName      string                `gorm:"type:varchar(50)" validate:"required" json:"first_name"`                  // Max 50 characters
-	MiddleName     string                `gorm:"type:varchar(50)" json:"-"`                                               // Optional, max 50 characters
-	LastName       string                `gorm:"type:varchar(50)" validate:"required" json:"last_name"`                   // Max 50 characters
-	Username       string                `gorm:"type:varchar(255);unique" validate:"required" json:"username"`            // Max 255 characters
-	Email          string                `gorm:"type:varchar(255);unique" validate:"required,email" json:"email"`         // Unique and valid email
-	Password       string                `gorm:"type:varchar(255)" validate:"required" json:"-"`                          // Max 255 characters
-	Role           string                `gorm:"type:varchar(50)" validate:"required,oneof=admin user guest" json:"role"` // Max 50 characters
-	CompanyID      uint                  `gorm:"not null;index" json:"-"`                                                 // Foreign key to the Category table
-	Company        model_company.Company `gorm:"foreignKey:CompanyID" json:"-"`
-	VerifiedAt     time.Time             `gorm:"type:timestamp" json:"-"`
-	VerifiedMethod string                `gorm:"type:varchar(50)" json:"-"`
+	ID             uint                          `gorm:"primaryKey" json:"id"`
+	FirstName      string                        `gorm:"type:varchar(50)" validate:"required" json:"first_name"`                  // Max 50 characters
+	MiddleName     string                        `gorm:"type:varchar(50)" json:"-"`                                               // Optional, max 50 characters
+	LastName       string                        `gorm:"type:varchar(50)" validate:"required" json:"last_name"`                   // Max 50 characters
+	Username       string                        `gorm:"type:varchar(255);unique" validate:"required" json:"username"`            // Max 255 characters
+	Email          string                        `gorm:"type:varchar(255);unique" validate:"required,email" json:"email"`         // Unique and valid email
+	Password       string                        `gorm:"type:varchar(255)" validate:"required" json:"-"`                          // Max 255 characters
+	Role           string                        `gorm:"type:varchar(50)" validate:"required,oneof=admin user guest" json:"role"` // Max 50 characters
+	CompanyID      uint                          `gorm:"not null;index" json:"-"`                                                 // Foreign key to the Category table
+	Company        model_company.CompanyResponse `gorm:"foreignKey:CompanyID" json:"company"`
+	VerifiedAt     time.Time                     `gorm:"type:timestamp" json:"-"`
+	VerifiedMethod string                        `gorm:"type:varchar(50)" json:"-"`
+	CreatedAt      time.Time                     `json:"created_at,omitempty"`
+	UpdatedAt      time.Time                     `json:"updated_at,omitempty"`
 }
 
 func (UserResponse) TableName() string {
+	return "users" // Replace this with your desired table name
+}
+
+func (UserPatch) TableName() string {
 	return "users" // Replace this with your desired table name
 }
 

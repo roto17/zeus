@@ -35,7 +35,7 @@ func Register(c *gin.Context) {
 	db := database.DB
 	var encryptedUser model_user.EncryptedUser
 
-	var new_user model_user.User
+	var user model_user.User
 
 	// Bind the incoming JSON to the user struct
 	if err := c.ShouldBindJSON(&encryptedUser); err != nil {
@@ -43,57 +43,52 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	new_user, ok := encryptions.DecryptObjectID(encryptedUser, &new_user).(model_user.User)
+	user, ok := encryptions.DecryptObjectID(encryptedUser, &user).(model_user.User)
 	if !ok {
 		panic("failed to assert type to User")
 	}
 
 	// Hash the user's password
-	hashedPassword, err := utils.HashPassword(new_user.Password)
+	hashedPassword, err := utils.HashPassword(user.Password)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("password_hashing_failed", "", requested_language)})
 		return
 	}
 
-	var searched_company model_company.Company
-	if err := database.DB.Where("id = ?", new_user.CompanyID).First(&searched_company).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("company_not_found", "", requested_language)})
+	if err := db.
+		Where("companies.id = ?", user.CompanyID).
+		First(&model_company.Company{}).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("company_not_found", "", requested_language)})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("internal_error", "", requested_language)})
+		}
 		return
 	}
 
-	newUser := model_user.User{
-		Email:      new_user.Email,
-		FirstName:  new_user.FirstName,
-		LastName:   new_user.LastName,
-		Username:   new_user.Username,
-		Password:   hashedPassword,
-		Role:       new_user.Role,
-		MiddleName: new_user.MiddleName,
-		CompanyID:  new_user.CompanyID,
-		Company:    searched_company,
-	}
+	user.Password = hashedPassword
 
 	// Validate and get translated error messages
-	validationErrors := utils.FieldValidationAll(newUser, requested_language)
+	validationErrors := utils.FieldValidationAll(user, requested_language)
 	if validationErrors != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": validationErrors})
 		return
 	}
 
 	// Save the user in the database
-	if err := db.Create(&newUser).Error; err != nil {
+	if err := db.Create(&user).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("registration_failed", "", requested_language)})
 		return
 	}
 
 	// Generate JWT token
-	token, err := utils.GenerateToken(newUser)
+	token, err := utils.GenerateToken(user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("token_generation_failed", "", requested_language)})
 		return
 	}
 
-	if err := utils.SendVerificationEmail(newUser.Email, token, config.GetEnv("appBaseURL"), config.GetEnv("smtpUser"), config.GetEnv("smtpPass"), config.GetEnv("smtpHost"), utils.StringToInt((config.GetEnv("smtpPort")))); err != nil {
+	if err := utils.SendVerificationEmail(user.Email, token, config.GetEnv("appBaseURL"), config.GetEnv("smtpUser"), config.GetEnv("smtpPass"), config.GetEnv("smtpHost"), utils.StringToInt((config.GetEnv("smtpPort")))); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("failed_to_send_verification_email", "", requested_language)})
 		return
 	}
@@ -254,10 +249,10 @@ func ViewUser(c *gin.Context) {
 
 	idParam := utils.DecryptID(escapedID)
 
-	var user model_user.User
+	var user model_user.UserResponse
 
 	result := database.DB.
-		Scopes(model_user.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
+		// Scopes(model_user.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id"))).
 		Preload("Company").First(&user, idParam)
 
 	if result.Error != nil {
@@ -265,16 +260,7 @@ func ViewUser(c *gin.Context) {
 		return
 	}
 
-	// isMatching := utils.IsCompanyIDMatching(&user, utils.GetParamIDFromGinClaims(c))
-
-	// if !isMatching {
-	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": translation.GetTranslation("Insufficient_permissions", "", requested_language)})
-	// 	return
-	// }
-
 	encryptedUser := encryptions.EncryptObjectID(user)
-
-	// decryptedUser := encryptions.DecryptObjectID(encryptedProduct, &model_product.Product{}).(model_product.Product)
 
 	// Return the encryptedProduct
 	c.JSON(http.StatusOK, encryptedUser)
@@ -285,7 +271,7 @@ func UpdateUser(c *gin.Context) {
 	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
 	db := database.DB
 	var encryptedUser model_user.EncryptedUser
-	var user model_user.User
+	var user model_user.UserPatch
 
 	// Bind the incoming JSON to the category struct
 	if err := c.ShouldBindJSON(&encryptedUser); err != nil {
@@ -293,7 +279,7 @@ func UpdateUser(c *gin.Context) {
 		return
 	}
 
-	user, ok := encryptions.DecryptObjectID(encryptedUser, &user).(model_user.User)
+	user, ok := encryptions.DecryptObjectID(encryptedUser, &user).(model_user.UserPatch)
 	if !ok {
 		panic("failed to assert type to User")
 	}
@@ -389,12 +375,12 @@ func AllUsers(c *gin.Context) {
 	// Get search query from query parameters
 	search := c.DefaultQuery("search", "")
 
-	var users []model_user.User
+	var users []model_user.UserResponse
 	var totalUsers int64
 
 	// Build base query with search filter
-	query := database.DB.Model(&model_user.User{})
-	query = query.Scopes(model_user.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id")))
+	query := database.DB.Model(&model_user.UserResponse{})
+	// query = query.Scopes(model_user.FilterByCompanyID(utils.GetParamIDFromGinClaims(c, "company_id")))
 	if search != "" {
 		query = query.Where("first_name ILIKE ?", "%"+search+"%") // Case-insensitive search for category names
 	}

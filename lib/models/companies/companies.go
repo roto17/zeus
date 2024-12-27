@@ -21,6 +21,17 @@ type CompanyEncrypted struct {
 	UpdatedAt   time.Time
 }
 
+type CompanyResponse struct {
+	ID          uint      `gorm:"primaryKey" json:"id"`
+	Description string    `gorm:"type:varchar(50);unique" validate:"required" json:"description"`
+	CreatedAt   time.Time `json:"-"`
+	UpdatedAt   time.Time `json:"-"`
+}
+
+func (CompanyResponse) TableName() string {
+	return "companies" // Replace this with your desired table name
+}
+
 // Define an interface that models with a Company field must implement
 type CompanyProvider interface {
 	// GetCompany() *Company
