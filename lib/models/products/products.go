@@ -17,6 +17,7 @@ type Product struct {
 	// Category  model_category.ProductCategoryResponse `gorm:"foreignKey:CategoryID" validate:"-" json:"category,omitempty"` // Association to the Category
 	UserID uint `gorm:"not null;index" validate:"required" json:"user_id,omitempty"` // Foreign key to the Category table
 	// User      model_user.UserResponse                `gorm:"foreignKey:UserID" validate:"-" json:"user,omitempty"`
+	Orders       []Order   `gorm:"many2many:order_products" json:"orders,omitempty"`
 	Unit         string    `gorm:"type:varchar(50)" validate:"required,oneof=Piece Metre KG" json:"unit,omitempty"`
 	Quantity     int64     `gorm:"type:int;default:0" json:"quantity,omitempty"`
 	BuyingPrice  float64   `gorm:"type:decimal(10,2)" validate:"required" json:"buying_price,omitempty"`  // Buying price
@@ -77,12 +78,39 @@ type ProductPatch struct {
 	UpdatedAt    time.Time `json:"updated_at,omitempty"`
 }
 
+// Product structure
+type Order struct {
+	ID        uint   `gorm:"primaryKey" json:"id,omitempty"`
+	Direction string `gorm:"type:varchar(1)" json:"direction,omitempty"` // "+" or "-"
+	Status    string `gorm:"type:varchar(20)" json:"status,omitempty"`   // "+" or "-"
+	UserID    uint   `gorm:"not null;index" validate:"required" json:"user_id,omitempty"`
+	// Products      []Product      `gorm:"many2many:order_products;joinForeignKey:OrderID;joinReferences:ProductID" json:"products,omitempty"`
+	OrderProducts []OrderProduct `gorm:"foreignKey:OrderID" json:"order_products,omitempty"` // One-to-many relationship
+
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+}
+
+type OrderProduct struct {
+	OrderID   uint  `gorm:"not null;index" json:"order_id,omitempty"`
+	ProductID uint  `gorm:"not null;index" json:"product_id,omitempty"`
+	Quantity  int64 `json:"quantity,omitempty"`
+}
+
 func (ProductResponse) TableName() string {
 	return "products" // Replace this with your desired table name
 }
 
 func (ProductPatch) TableName() string {
 	return "products" // Replace this with your desired table name
+}
+
+func (OrderProduct) TableName() string {
+	return "order_products" // Replace this with your desired table name
+}
+
+func (Order) TableName() string {
+	return "orders" // Replace this with your desired table name
 }
 
 // func (p *Product) GetCompany() model_company.Company {

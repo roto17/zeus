@@ -72,6 +72,8 @@ func InitRouter(ctx context.Context) *gin.Engine {
 		api.GET("/products", JWTAuthMiddleware("admin"), actions.AllProducts)
 		api.DELETE("/products/*path", JWTAuthMiddleware("admin"), actions.DeleteProduct)
 
+		api.POST("/orders", JWTAuthMiddleware("admin"), actions.AddOrder)
+
 		// api.GET("/products", JWTAuthMiddleware("admin"), actions.SaveQR)
 
 		// WebSocket route for notifications

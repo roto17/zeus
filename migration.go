@@ -20,6 +20,8 @@ func main() {
 
 	migrations.MigrateProductCategory()
 	migrations.MigrateProducts()
+	migrations.MigrateOrders()
+	migrations.MigrateOrdersProducts()
 
 	// Create a new user
 	// user := models.User{Name: "John Doe yy", Desc: "okokok", Jam: "uuuuu"}
