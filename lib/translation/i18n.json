@@ -39,7 +39,9 @@
     "fk_issue":"This item is associated with other records and cannot be deleted or updated. Please modify or remove the related records first.",
     "company_not_found": "The requested company could not be found.",
     "Insufficient_permissions":"You don't have enough privileges to see this.",
-    "internal_error": "An internal error occurred. Please try again later."
+    "internal_error": "An internal error occurred. Please try again later.",
+    "selling_price_greater_than_buying_price": "The selling price must be greater than the buying price.",
+    "buying_price_less_than_selling_price" : "The buying price must be less than the selling price."
 
   },
   "fr": {
@@ -81,7 +83,9 @@
     "fk_issue":"Cet élément est associé à d'autres enregistrements et ne peut pas être supprimé ou mis à jour. Veuillez d'abord modifier ou supprimer les enregistrements liés.",
     "company_not_found": "La société demandée est introuvable.",
     "Insufficient_permissions":"Vous n'avez pas suffisamment de privilèges pour voir ceci.",
-    "internal_error": "Une erreur interne est survenue. Veuillez réessayer plus tard."
+    "internal_error": "Une erreur interne est survenue. Veuillez réessayer plus tard.",
+    "selling_price_greater_than_buying_price": "Le prix de vente doit être supérieur au prix d'achat.",
+    "buying_price_less_than_selling_price" : "Le prix d'achat doit être inférieur au prix de vente."
 
   }
 

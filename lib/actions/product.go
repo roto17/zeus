@@ -74,7 +74,7 @@ func UpdateProduct(c *gin.Context) {
 	db := database.DB
 	var productEncrypted model_product.ProductEncrypted
 
-	var product model_product.Product
+	var product model_product.ProductPatch
 
 	// Bind the incoming JSON to the product struct
 	if err := c.ShouldBindJSON(&productEncrypted); err != nil {
@@ -82,19 +82,14 @@ func UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	product, ok := encryptions.DecryptObjectID(productEncrypted, &product).(model_product.Product)
+	product, ok := encryptions.DecryptObjectID(productEncrypted, &product).(model_product.ProductPatch)
 	if !ok {
 		panic("failed to assert type to Product")
 	}
 
-	product.UserID = utils.GetParamIDFromGinClaims(c, "user_id")
+	fmt.Printf("\n----%v----\n", product)
 
-	// Validate the incoming product data
-	validationErrors := utils.FieldValidationAll(product, requestedLanguage)
-	if validationErrors != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": validationErrors})
-		return
-	}
+	product.UserID = utils.GetParamIDFromGinClaims(c, "user_id")
 
 	if product.ID > 0 {
 		// Check if the Product exists by ID
@@ -125,6 +120,13 @@ func UpdateProduct(c *gin.Context) {
 			return
 		}
 
+	}
+
+	// Validate the incoming product data
+	validationErrors := utils.FieldValidationAll(product, requestedLanguage)
+	if validationErrors != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": validationErrors})
+		return
 	}
 
 	// Save the updated category to the database
@@ -221,8 +223,8 @@ func AllProducts(c *gin.Context) {
 
 	// Fetch products with pagination
 	result := query.
-		Preload("Category").
-		Preload("User.Company").
+		Preload("Category.User").
+		Preload("User").
 		Limit(limit).
 		Offset(offset).
 		Find(&products)

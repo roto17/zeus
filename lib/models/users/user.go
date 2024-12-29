@@ -71,7 +71,7 @@ type UserResponse struct {
 	Password       string                        `gorm:"type:varchar(255)" validate:"required" json:"-"`                          // Max 255 characters
 	Role           string                        `gorm:"type:varchar(50)" validate:"required,oneof=admin user guest" json:"role"` // Max 50 characters
 	CompanyID      uint                          `gorm:"not null;index" json:"-"`                                                 // Foreign key to the Category table
-	Company        model_company.CompanyResponse `gorm:"foreignKey:CompanyID" json:"company"`
+	Company        model_company.CompanyResponse `gorm:"foreignKey:CompanyID" json:"-"`
 	VerifiedAt     time.Time                     `gorm:"type:timestamp" json:"-"`
 	VerifiedMethod string                        `gorm:"type:varchar(50)" json:"-"`
 	CreatedAt      time.Time                     `json:"created_at,omitempty"`

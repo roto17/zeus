@@ -22,11 +22,12 @@ func ValidateStruct(model interface{}, language string) []model_validation.Valid
 	err := validate.Struct(model)
 	var errors []model_validation.ValidationError
 
-	// fmt.Printf("**************\n")
-	// fmt.Printf("%s", model.(model_user.User).Password)
-	// fmt.Printf("**************\n")
+	// Add validation for 'buying_price' and 'selling_price' relationship
 
-	// fmt.Printf("---err----------%v----------------\n", err)
+	errPrice := validateBuyingSellingPrice(model, language)
+	if errPrice != nil {
+		errors = append(errors, errPrice...)
+	}
 
 	if err != nil {
 		for _, fieldErr := range err.(validator.ValidationErrors) {
@@ -34,20 +35,17 @@ func ValidateStruct(model interface{}, language string) []model_validation.Valid
 
 			message := strings.Replace(translation.GetTranslation(fieldErr.Tag(), fieldErr.StructField(), language), "{Field}", fieldErr.StructField(), 1) // Replace {Field} with the actual field name
 
-			// message = strings.Replace(message, "{Field}", fieldErr.StructField(), 1)
-
 			// Check if the error tag is "oneof"
 			fieldValue := getFieldValue(model, fieldErr.StructField())
 			if fieldErr.Tag() == "oneof" {
+
 				// Dynamically retrieve the allowed values from the struct tag
 				allowedValues := getOneOfTagValue(model, fieldErr.StructField())
 
 				// Replace the {Values} placeholder in the error message
 				message = strings.Replace(message, "{values}", allowedValues, 1)
 
-				// fmt.Printf("%v++++++++++++++++++++", fieldValue)
 			}
-			// fmt.Printf("%s", fieldErr.StructField())
 
 			if fieldErr.Tag() != "oneof" || (fieldErr.Tag() == "oneof" && fieldValue != "") {
 				// Append the custom error message to the errors slice
@@ -83,7 +81,6 @@ func FieldValidationAll(model interface{}, language string) []model_validation.V
 		if strings.Contains(string(field.Tag), "unique") {
 			var count int64
 			query := fmt.Sprintf("%s = ?", strings.ToLower(fmt.Sprintf("\"%s\"", field.Name)))
-
 			// Check for uniqueness in the database
 			if err := database.DB.Model(model).Where(query, value.Interface()).Count(&count).Error; err != nil {
 				// return nil, err // Return an error if the query fails
@@ -102,6 +99,78 @@ func FieldValidationAll(model interface{}, language string) []model_validation.V
 	}
 
 	return listOfErrors
+}
+
+// validateBuyingSellingPrice ensures selling_price is greater than buying_price
+func validateBuyingSellingPrice(model interface{}, language string) []model_validation.ValidationError {
+	var errors []model_validation.ValidationError
+
+	val := reflect.ValueOf(model)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem() // Dereference pointer to get the actual value
+	}
+
+	// Loop through struct fields and find buying_price and selling_price
+	buyingPriceField := val.FieldByName("BuyingPrice")
+	sellingPriceField := val.FieldByName("SellingPrice")
+	idField := val.FieldByName("ID")
+
+	// fmt.Printf("\n-------BUY   %v--Sell %v---------\n", val, val)
+
+	// Check if both fields exist and are valid
+	if buyingPriceField.IsValid() && sellingPriceField.IsValid() && idField.IsValid() {
+		buyingPrice := buyingPriceField.Float()
+		sellingPrice := sellingPriceField.Float()
+		id := idField.Uint()
+
+		// Check that selling_price is greater than buying_price
+		if sellingPrice <= buyingPrice && buyingPrice > 0 && sellingPrice > 0 {
+			// Create a validation error for this specific validation
+			errors = append(errors, model_validation.ValidationError{
+				Field:   "Selling_Price",
+				Message: translation.GetTranslation("selling_price_greater_than_buying_price", "", language),
+			})
+		} else if buyingPrice > 0 && sellingPrice <= 0 {
+			var count int64
+			query := fmt.Sprintf("%s > ? and products.id = ?", strings.ToLower(fmt.Sprintf("\"%s\"", "selling_price")))
+
+			// Check for uniqueness in the database
+			if err := database.DB.Model(model).Where(query, buyingPrice, id).Count(&count).Error; err != nil {
+				// return nil, err // Return an error if the query fails
+				logs.AddLog("Fatal", "roto", fmt.Sprintf("Failed to connect to the database:%s", err))
+			}
+
+			if count == 0 {
+				errors = append(errors, model_validation.ValidationError{
+					Field:   "Buying_Price",
+					Message: translation.GetTranslation("buying_price_less_than_selling_price", "", language),
+				})
+
+			}
+
+		} else if buyingPrice <= 0 && sellingPrice > 0 {
+
+			var count int64
+			query := fmt.Sprintf("%s < ? and products.id = ?", strings.ToLower(fmt.Sprintf("\"%s\"", "buying_price")))
+
+			// Check for uniqueness in the database
+			if err := database.DB.Model(model).Where(query, sellingPrice, id).Count(&count).Error; err != nil {
+				// return nil, err // Return an error if the query fails
+				logs.AddLog("Fatal", "roto", fmt.Sprintf("Failed to connect to the database:%s", err))
+			}
+
+			if count == 0 {
+				errors = append(errors, model_validation.ValidationError{
+					Field:   "Selling_Price",
+					Message: translation.GetTranslation("selling_price_greater_than_buying_price", "", language),
+				})
+
+			}
+
+		}
+	}
+
+	return errors
 }
 
 // Helper function to extract the "oneof" tag value from the struct
