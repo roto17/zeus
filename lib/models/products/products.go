@@ -85,16 +85,26 @@ type Order struct {
 	Status    string `gorm:"type:varchar(20)" json:"status,omitempty"`   // "+" or "-"
 	UserID    uint   `gorm:"not null;index" validate:"required" json:"user_id,omitempty"`
 	// Products      []Product      `gorm:"many2many:order_products;joinForeignKey:OrderID;joinReferences:ProductID" json:"products,omitempty"`
-	OrderProducts []OrderProduct `gorm:"foreignKey:OrderID" json:"order_products,omitempty"` // One-to-many relationship
+	OrderProducts []OrderProduct `gorm:"foreignKey:OrderID" json:"orderproducts,omitempty"` // One-to-many relationship
 
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 }
 
 type OrderProduct struct {
-	OrderID   uint  `gorm:"not null;index" json:"order_id,omitempty"`
-	ProductID uint  `gorm:"not null;index" json:"product_id,omitempty"`
-	Quantity  int64 `json:"quantity,omitempty"`
+	OrderID   uint    `gorm:"not null;index" json:"order_id,omitempty"`
+	ProductID uint    `gorm:"not null;index" json:"product_id,omitempty"`
+	Quantity  int64   `json:"quantity,omitempty"`
+	Price     int64   `json:"price,omitempty"`
+	Product   Product `gorm:"foreignKey:ProductID" json:"product,omitempty"`
+}
+
+type OrderProductEncrypted struct {
+	OrderID   string  `gorm:"not null;index" json:"order_id,omitempty"`
+	ProductID string  `gorm:"not null;index" json:"product_id,omitempty"`
+	Quantity  int64   `json:"quantity,omitempty"`
+	Price     int64   `json:"price,omitempty"`
+	Product   Product `gorm:"foreignKey:ProductID" json:"product,omitempty"`
 }
 
 func (ProductResponse) TableName() string {
