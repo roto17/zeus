@@ -100,6 +100,43 @@ func AddProductToOrder(c *gin.Context) {
 		return
 	}
 
+	// Step 2: Get all the ProductIDs from the incoming OrderProducts
+	var productIDs []uint
+	for _, orderProduct := range order.OrderProducts {
+		productIDs = append(productIDs, orderProduct.ProductID)
+	}
+
+	// Step 3: Retrieve all associated Products in a single query using `IN`
+	var products []model_product.Product
+	if err := db.Where("id IN (?)", productIDs).Find(&products).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Products not found"})
+		return
+	}
+
+	// Step 4: Create a map of ProductID -> Product for fast lookup
+	productMap := make(map[uint]model_product.Product)
+	for _, product := range products {
+		productMap[product.ID] = product
+	}
+
+	// Step 5: Associate each OrderProduct with its corresponding Product
+	for i := range order.OrderProducts {
+		product, exists := productMap[order.OrderProducts[i].ProductID]
+		if !exists {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
+			return
+		}
+		order.OrderProducts[i].Product = product
+		if product.Weight > 0 {
+			order.OrderProducts[i].Price = int64(product.BuyingPrice * product.Weight)
+		} else {
+			order.OrderProducts[i].Price = int64(product.SellingPrice)
+		}
+
+	}
+
+	c.JSON(http.StatusOK, gin.H{"entry": order})
+
 	// fmt.Printf("\n-----%v------------\n", order.OrderProducts)
 
 	// result := db.Create(&order) // `order` should be an Order struct with OrderProducts set
@@ -129,12 +166,12 @@ func AddProductToOrder(c *gin.Context) {
 	// 	{OrderID: order.ID, ProductID: 24, Quantity: 2, Price: 2},
 	// }
 
-	for i := range OrderProducts {
+	// for i := range OrderProducts {
 
-		order.OrderProducts[i].Price = int64(order.OrderProducts[i].Product.SellingPrice)
+	// 	order.OrderProducts[i].Price = int64(order.OrderProducts[i].Product.SellingPrice)
 
-		// order.OrderProducts[i].Price = 100
-	}
+	// 	// order.OrderProducts[i].Price = 100
+	// }
 
 	// fmt.Printf("\n----%v---\n", OrderProducts)
 

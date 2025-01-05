@@ -2348,3 +2348,13 @@
 [2025-01-04T23:58:57+01:00] Info: User: roto, Message: Database connection established!, file: D:/Golang/zeus/lib/database/database.go => line: 39
 [2025-01-04T23:59:26+01:00] Info: User: roto, Message: I18n.json file loaded successefuly, file: D:/Golang/zeus/lib/config/config.go => line: 38
 [2025-01-04T23:59:26+01:00] Info: User: roto, Message: Database connection established!, file: D:/Golang/zeus/lib/database/database.go => line: 39
+[2025-01-05T18:12:13+01:00] Info: User: roto, Message: I18n.json file loaded successefuly, file: D:/Golang/zeus/lib/config/config.go => line: 38
+[2025-01-05T18:12:13+01:00] Info: User: roto, Message: Database connection established!, file: D:/Golang/zeus/lib/database/database.go => line: 39
+[2025-01-05T18:17:50+01:00] Info: User: roto, Message: I18n.json file loaded successefuly, file: D:/Golang/zeus/lib/config/config.go => line: 38
+[2025-01-05T18:17:50+01:00] Info: User: roto, Message: Database connection established!, file: D:/Golang/zeus/lib/database/database.go => line: 39
+[2025-01-05T18:22:05+01:00] Info: User: roto, Message: I18n.json file loaded successefuly, file: D:/Golang/zeus/lib/config/config.go => line: 38
+[2025-01-05T18:22:05+01:00] Info: User: roto, Message: Database connection established!, file: D:/Golang/zeus/lib/database/database.go => line: 39
+[2025-01-05T18:25:31+01:00] Info: User: roto, Message: I18n.json file loaded successefuly, file: D:/Golang/zeus/lib/config/config.go => line: 38
+[2025-01-05T18:25:31+01:00] Info: User: roto, Message: Database connection established!, file: D:/Golang/zeus/lib/database/database.go => line: 39
+[2025-01-05T18:28:01+01:00] Info: User: roto, Message: I18n.json file loaded successefuly, file: D:/Golang/zeus/lib/config/config.go => line: 38
+[2025-01-05T18:28:01+01:00] Info: User: roto, Message: Database connection established!, file: D:/Golang/zeus/lib/database/database.go => line: 39
