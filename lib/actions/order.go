@@ -3,6 +3,7 @@ package actions
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/roto17/zeus/lib/database"
@@ -87,8 +88,8 @@ func AddOrder(c *gin.Context) {
 	// c.JSON(http.StatusOK, gin.H{"message": translation.GetTranslation("added_successfuly", "", requested_language)})
 }
 
-// Add Category
-func AddProductToStock(c *gin.Context) {
+// AddSubstructProductToStock
+func AddSubstructProductToStock(c *gin.Context) {
 
 	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
 	db := database.DB
@@ -219,7 +220,7 @@ func AddProductToStock(c *gin.Context) {
 					errorProducts = append(errorProducts,
 						ErrorProduct{
 							ProductID: int(product.ID),
-							Msg:       fmt.Sprintf("Requested %d of this product : %s ,but we only have %d", orderInput.OrderProducts[i].Quantity, product.Description, product.Quantity),
+							Msg:       transalteQttMessage(orderInput.OrderProducts[i].Quantity, product.Description, product.Quantity, requested_language),
 						})
 
 					// fmt.Println("Requested QTT is higher than stock")
@@ -260,6 +261,51 @@ func AddProductToStock(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Order is closed"})
 		return
 	}
+
+}
+
+func DeletProductFromOrder(c *gin.Context) {
+
+	requested_language := utils.GetHeaderVarToString(c.Get("requested_language"))
+	db := database.DB
+	var orderInput model_product.Order
+
+	// var order model_product.Order
+
+	// Bind the incoming JSON to the user struct
+	if err := c.ShouldBindJSON(&orderInput); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": translation.GetTranslation("invalid_input", "", requested_language)})
+		return
+	}
+
+	var productIDs []uint
+	for _, orderProduct := range orderInput.OrderProducts {
+		productIDs = append(productIDs, orderProduct.ProductID)
+	}
+
+	db.Where("product_id IN (?) and order_id = ?", productIDs, orderInput.ID).Delete(&model_product.OrderProduct{})
+
+	fmt.Printf("--------------%v---------", productIDs)
+
+	// result := db.
+	// 	Preload("OrderProducts.Product").
+	// 	First(&order, orderInput.ID)
+
+	// result2 := db.Where("order_id = ?", orderInput.ID).Delete(&model_product.OrderProduct{})
+
+	// if result2.Error != nil {
+	c.JSON(http.StatusNotFound, gin.H{"error": "Can't delete order products"})
+	// 	return
+	// }
+
+}
+
+func transalteQttMessage(requested_qtt int64, product string, available_qtt int64, requested_lan string) string {
+
+	text_template := translation.GetTranslation("out_of_stock", "", requested_lan)
+	text := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(text_template, "{requested_qtt}", fmt.Sprintf("%d", requested_qtt)), "{product}", product), "{available_qtt}", fmt.Sprintf("%d", available_qtt))
+
+	return text
 
 }
 
