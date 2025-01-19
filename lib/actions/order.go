@@ -9,6 +9,7 @@ import (
 	"github.com/roto17/zeus/lib/database"
 	"github.com/roto17/zeus/lib/translation"
 	"github.com/roto17/zeus/lib/utils"
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
 	// encryptions "github.com/roto17/zeus/lib/encryption"
@@ -270,7 +271,7 @@ func DeletProductFromOrder(c *gin.Context) {
 	db := database.DB
 	var orderInput model_product.Order
 
-	// var order model_product.Order
+	var order model_product.Order
 
 	// Bind the incoming JSON to the user struct
 	if err := c.ShouldBindJSON(&orderInput); err != nil {
@@ -278,25 +279,31 @@ func DeletProductFromOrder(c *gin.Context) {
 		return
 	}
 
-	var productIDs []uint
-	for _, orderProduct := range orderInput.OrderProducts {
-		productIDs = append(productIDs, orderProduct.ProductID)
+	if err := db.
+		Preload("OrderProducts.Product").
+		First(&order, orderInput.ID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("order_not_found", "", requested_language)})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": translation.GetTranslation("internal_error", "", requested_language)})
+		}
+		return
 	}
 
-	db.Where("product_id IN (?) and order_id = ?", productIDs, orderInput.ID).Delete(&model_product.OrderProduct{})
+	if order.Status == "pending" {
+		var productIDs []uint
+		for _, orderProduct := range orderInput.OrderProducts {
+			productIDs = append(productIDs, orderProduct.ProductID)
+		}
 
-	fmt.Printf("--------------%v---------", productIDs)
+		db.Where("product_id IN (?) and order_id = ?", productIDs, orderInput.ID).Delete(&model_product.OrderProduct{})
+		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("order_products_deleted", "", requested_language)})
 
-	// result := db.
-	// 	Preload("OrderProducts.Product").
-	// 	First(&order, orderInput.ID)
-
-	// result2 := db.Where("order_id = ?", orderInput.ID).Delete(&model_product.OrderProduct{})
-
-	// if result2.Error != nil {
-	c.JSON(http.StatusNotFound, gin.H{"error": "Can't delete order products"})
-	// 	return
-	// }
+		return
+	} else {
+		c.JSON(http.StatusNotFound, gin.H{"error": translation.GetTranslation("cant_delete_complete_order_products", "", requested_language)})
+		return
+	}
 
 }
 
