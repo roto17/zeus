@@ -55,8 +55,8 @@ func main() {
 
 func sendVerificationSMS() {
 
-	accountSid := "ACdaa6c8500198d8beffdd811844f14d75"
-	authToken := "a8020f6379f14a396ea1bbad41f0c644"
+	accountSid := "ACC_ID"
+	authToken := "TOKEN"
 	client := twilio.NewRestClientWithParams(twilio.ClientParams{
 		Username: accountSid,
 		Password: authToken,
@@ -64,9 +64,9 @@ func sendVerificationSMS() {
 
 	// Send SMS
 	params := &openapi.CreateMessageParams{}
-	params.SetTo("+212634894766")  // Replace with the recipient's phone number
-	params.SetFrom("+17856293009") // Replace with your Twilio phone number
-	params.SetBody("Your verification code is TZZZ: 123456")
+	params.SetTo("+000000000")  // Replace with the recipient's phone number
+	params.SetFrom("+000000000") // Replace with your Twilio phone number
+	params.SetBody("Your verification code is TZZZ: 000000")
 
 	resp, err := client.Api.CreateMessage(params)
 
